@@ -53,21 +53,23 @@ graph TD
 
     Tamper --> Verified{"Is Valid?"}:::decision
     Verified -- "YES" --> ResultValid["VERIFIED"]:::final_valid
-    Verified -- "NO" --> ResultFlagged["FLAGGED"]:::final_flag
+    Verified -- "NO" --> ResultFlagged["FLAGGED"]:::final_flag```
+
 
 Workflow Step-by-Step Description
+
 Stage 1: Issuance Workflow (Institution Side)
-Institution Authenticates: Authorized personnel log into the AVFA portal via a secure Role-Based Access Control (RBAC) system.
+1)Institution Authenticates: Authorized personnel log into the AVFA portal via a secure Role-Based Access Control (RBAC) system.
 
-1)Enter Details: Academic records (student name, degree, GPA, issue date) are entered via UI forms or bulk CSV upload.
+2)Enter Details: Academic records (student name, degree, GPA, issue date) are entered via UI forms or bulk CSV upload.
 
-2)Generate Certificate: The system automatically generates a PDF certificate and embeds a cryptographic QR code containing a unique ID and a verification URL.
+3)Generate Certificate: The system automatically generates a PDF certificate and embeds a cryptographic QR code containing a unique ID and a verification URL.
 
-3)Calculate SHA-256 Hash: A unique 64-character hexadecimal SHA-256 hash is generated from the raw binary content of the specific PDF file. If one pixel changes, the hash changes completely.
+4)Calculate SHA-256 Hash: A unique 64-character hexadecimal SHA-256 hash is generated from the raw binary content of the specific PDF file. If one pixel changes, the hash changes completely.
 
-4)Digital Signature: The institution signs the hash with its private cryptographic key, proving ownership and origin.
+5)Digital Signature: The institution signs the hash with its private cryptographic key, proving ownership and origin.
 
-5)Store Record (Immutable Ledger):
+6)Store Record (Immutable Ledger):
 
 ->Database: Student metadata and the SHA-256 hash are stored in the secure relational database.
 
@@ -90,11 +92,11 @@ Stage 2: Verification Workflow (Public Side)
 
 6)Check Hash/Signature:
 
-->The system calculates the SHA-256 hash of the uploaded document.
+7)The system calculates the SHA-256 hash of the uploaded document.
 
 ->It retrieves the stored hash and signature for the matching certificate ID.
 
-7)Tamper Analysis: The system performs a bitwise comparison. If the generated hash matches the stored hash exactly, the document is integral (original). If they differ, it has been modified.
+->Tamper Analysis: The system performs a bitwise comparison. If the generated hash matches the stored hash exactly, the document is integral (original). If they differ, it has been modified.
 
 8)Final Outcome:
 
