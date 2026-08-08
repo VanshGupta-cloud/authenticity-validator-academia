@@ -25,6 +25,8 @@ Academic credential fraud poses a severe threat to educational standards and emp
 * **Arpit Kesarvani** – System Design & Architecture
 * **Divyansh Dubey** – Frontend Development (HTML, CSS, JavaScript, Tailwind CSS)
   
+---
+  
 ## 🚀 Key Features (Prototype Scope)
 
 - **📄 Cryptographic Certificate Hashing:** Generates SHA-256 digital signatures for academic PDFs embedded into QR codes.
