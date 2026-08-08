@@ -1,16 +1,29 @@
-# Database Schema (DB Schema)
+# Database Schema (FINAL — v2)
 
-This document defines the relational database schema for the **Authenticity Validator for Academia (AVFA)** platform (SIH25029).
+**Authenticity Validator for Academia (AVFA)** — SIH25029
+Locked Day 1 (Aug 8) — resolves the 3 open flags from the v1 draft.
+
+---
+
+## Changes from v1
+
+| # | Flag | Resolution |
+|---|------|------------|
+| 1 | `blockchain_tx_hash`, `block_number` on `certificates` | **Removed.** Leftover from the dropped blockchain/IPFS approach — Day 6 decision was hash + signature + Postgres only. |
+| 2 | No column stored the actual digital signature | **Added `signature TEXT NOT NULL`** on `certificates`. We hash the certificate, then sign that hash with the institution's private key (Day 5 task) — the schema had nowhere to persist the result. |
+| 3 | `institutions.is_verified` defaulted `TRUE` | **Changed default to `FALSE`.** An authenticity platform should not auto-trust every new institution on signup; verification should be a deliberate step. |
+
+Everything else (`users`, `batch_logs`, `verification_logs`) is unchanged from v1.
 
 ---
 
 ## Entity Relationship Overview
 
-- **institutions**: Stores registered academic bodies authorized to issue credentials.
-- **users**: Stores administrative accounts, issuers, and system operators linked to institutions.
-- **batch_logs**: Records bulk processing jobs when institutions upload batches of certificates.
-- **certificates**: Core ledger table storing student metadata, SHA-256 hashes, QR URLs, and blockchain transaction references.
-- **verification_logs**: Audit trail tracking public verification attempts, query hashes, and status results.
+- **institutions** — registered academic bodies authorized to issue credentials.
+- **users** — admin/issuer/verifier accounts linked to an institution.
+- **certificates** — core table: student metadata, hash, signature, QR/PDF URLs.
+- **batch_logs** — bulk-upload job tracking.
+- **verification_logs** — audit trail of every verification attempt.
 
 ---
 
@@ -18,74 +31,66 @@ This document defines the relational database schema for the **Authenticity Vali
 
 ### 1. `institutions`
 ```text
-id            UUID / INTEGER    PRIMARY KEY
+id            UUID              PRIMARY KEY
 name          VARCHAR           NOT NULL
-code          VARCHAR           UNIQUE
-email         VARCHAR           UNIQUE
-public_key    TEXT
-is_verified   BOOLEAN
+code          VARCHAR           UNIQUE NOT NULL
+email         VARCHAR           UNIQUE NOT NULL
+public_key    TEXT                              -- used to verify certificate signatures
+is_verified   BOOLEAN           DEFAULT FALSE    -- CHANGED from TRUE
 created_at    TIMESTAMP
 ```
 
----
-
 ### 2. `users`
 ```text
-id              UUID / INTEGER    PRIMARY KEY
-institution_id  UUID / INTEGER    FOREIGN KEY -> institutions(id)
+id              UUID              PRIMARY KEY
+institution_id  UUID              FOREIGN KEY -> institutions(id)
 full_name       VARCHAR           NOT NULL
-email           VARCHAR           UNIQUE
+email           VARCHAR           UNIQUE NOT NULL
 password_hash   VARCHAR           NOT NULL
-role            VARCHAR           CHECK ('ADMIN', 'ISSUER', 'VERIFIER')
+role            VARCHAR           CHECK ('ADMIN', 'ISSUER', 'VERIFIER') DEFAULT 'ISSUER'
 created_at      TIMESTAMP
 ```
 
----
-
 ### 3. `certificates`
 ```text
-id                  UUID / INTEGER    PRIMARY KEY
+id                  UUID              PRIMARY KEY
 certificate_number  VARCHAR           UNIQUE NOT NULL
-institution_id      UUID / INTEGER    FOREIGN KEY -> institutions(id)
-issued_by           UUID / INTEGER    FOREIGN KEY -> users(id)
-batch_id            UUID / INTEGER    FOREIGN KEY -> batch_logs(id)
+institution_id      UUID              FOREIGN KEY -> institutions(id)
+issued_by           UUID              FOREIGN KEY -> users(id)
+batch_id            UUID              FOREIGN KEY -> batch_logs(id)
 student_name        VARCHAR           NOT NULL
 student_roll_no     VARCHAR           NOT NULL
 degree_name         VARCHAR           NOT NULL
 issue_date          DATE              NOT NULL
 sha256_hash         VARCHAR(64)       UNIQUE NOT NULL
+signature           TEXT              NOT NULL   -- NEW: institution's signature over sha256_hash
 qr_code_url         TEXT
 pdf_url             TEXT
-blockchain_tx_hash  VARCHAR(66)
-block_number        BIGINT
-status              VARCHAR           CHECK ('ISSUED', 'REVOKED')
+status              VARCHAR           CHECK ('ISSUED', 'REVOKED') DEFAULT 'ISSUED'
 revocation_reason   TEXT
 revoked_at          TIMESTAMP
 created_at          TIMESTAMP
 ```
-
----
+*(`blockchain_tx_hash` and `block_number` removed — no longer applicable.)*
 
 ### 4. `batch_logs`
 ```text
-id                  UUID / INTEGER    PRIMARY KEY
-institution_id      UUID / INTEGER    FOREIGN KEY -> institutions(id)
-uploaded_by         UUID / INTEGER    FOREIGN KEY -> users(id)
+id                  UUID              PRIMARY KEY
+institution_id      UUID              FOREIGN KEY -> institutions(id)
+uploaded_by         UUID              FOREIGN KEY -> users(id)
 total_records       INTEGER           NOT NULL
-successful_records  INTEGER
-failed_records      INTEGER
-status              VARCHAR           CHECK ('PROCESSING', 'COMPLETED', 'FAILED')
+successful_records  INTEGER           DEFAULT 0
+failed_records      INTEGER           DEFAULT 0
+status              VARCHAR           CHECK ('PROCESSING', 'COMPLETED', 'FAILED') DEFAULT 'PROCESSING'
 created_at          TIMESTAMP
 ```
 
----
-
 ### 5. `verification_logs`
 ```text
-id                   UUID / INTEGER    PRIMARY KEY
-certificate_id       UUID / INTEGER    FOREIGN KEY -> certificates(id)
+id                   UUID              PRIMARY KEY
+certificate_id       UUID              FOREIGN KEY -> certificates(id)
 queried_hash         VARCHAR(64)       NOT NULL
-verification_status  VARCHAR           CHECK ('VALID', 'TAMPERED', 'REVOKED', 'NOT_FOUND')
+verification_status  VARCHAR           CHECK ('VALID', 'TAMPERED', 'REVOKED', 'NOT_FOUND') NOT NULL
 verified_by_ip       VARCHAR(45)
 user_agent           TEXT
 created_at           TIMESTAMP
@@ -103,7 +108,7 @@ CREATE TABLE institutions (
     code VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     public_key TEXT,
-    is_verified BOOLEAN DEFAULT TRUE,
+    is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -142,10 +147,9 @@ CREATE TABLE certificates (
     degree_name VARCHAR(150) NOT NULL,
     issue_date DATE NOT NULL,
     sha256_hash VARCHAR(64) UNIQUE NOT NULL,
+    signature TEXT NOT NULL,
     qr_code_url TEXT,
     pdf_url TEXT,
-    blockchain_tx_hash VARCHAR(66),
-    block_number BIGINT,
     status VARCHAR(20) CHECK (status IN ('ISSUED', 'REVOKED')) DEFAULT 'ISSUED',
     revocation_reason TEXT,
     revoked_at TIMESTAMP WITH TIME ZONE,
