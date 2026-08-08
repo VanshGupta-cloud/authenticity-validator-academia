@@ -11,6 +11,13 @@ An automated, tamper-proof academic document verification system designed to era
 
 ---
 
+## Repository Documentation
+
+- [System Architecture & Workflow Flowchart](docs/architecture_flow.md)
+- [Database Schema Documentation](docs/docs_db_schema.md)
+
+ ---
+
 ## 📌 Problem Statement Overview
 
 Academic credential fraud poses a severe threat to educational standards and employment integrity. Manual verification processes are slow, inefficient, and vulnerable to forgery. **AVFA** provides a high-trust digital ecosystem where institutions issue cryptographically signed certificates, and verifiers (employers/universities) can validate their authenticity in seconds.
