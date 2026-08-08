@@ -56,9 +56,9 @@ graph TD
     Verified -- "NO" --> ResultFlagged["FLAGGED"]:::final_flag
 ```
 
-Workflow Step-by-Step Description
+***Workflow Step-by-Step Description***
 
-Stage 1: Issuance Workflow (Institution Side)
+Stage 1: ***Issuance Workflow (Institution Side)***
 
 1)Institution Authenticates: Authorized personnel log into the AVFA portal via a secure Role-Based Access Control (RBAC) system.
 
@@ -76,7 +76,7 @@ Stage 1: Issuance Workflow (Institution Side)
 
 ->IPFS/Blockchain: The encrypted PDF is uploaded to IPFS (InterPlanetary File System) for decentralized storage, and a reference (transaction hash) is committed to the blockchain simulation.
 
-Stage 2: Verification Workflow (Public Side)
+Stage 2: ***Verification Workflow (Public Side)***
 
 1)User Initiates: A third-party verifier (employer, another university) accesses the public verification page.
 
