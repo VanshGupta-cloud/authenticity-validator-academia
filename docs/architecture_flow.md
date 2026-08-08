@@ -53,8 +53,8 @@ graph TD
 
     Tamper --> Verified{"Is Valid?"}:::decision
     Verified -- "YES" --> ResultValid["VERIFIED"]:::final_valid
-    Verified -- "NO" --> ResultFlagged["FLAGGED"]:::final_flag```
-
+    Verified -- "NO" --> ResultFlagged["FLAGGED"]:::final_flag
+```
 
 Workflow Step-by-Step Description
 
