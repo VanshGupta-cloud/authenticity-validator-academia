@@ -16,7 +16,15 @@ An automated, tamper-proof academic document verification system designed to era
 Academic credential fraud poses a severe threat to educational standards and employment integrity. Manual verification processes are slow, inefficient, and vulnerable to forgery. **AVFA** provides a high-trust digital ecosystem where institutions issue cryptographically signed certificates, and verifiers (employers/universities) can validate their authenticity in seconds.
 
 ---
+## Team Members & Responsibilities
 
+* **Hriddhima** *(Team Lead)* – FastAPI, Cryptography, Hashing
+* **Avika Srivastava** – PDF + QR Generation, RapidFuzz
+* **Anmol Sachan** – OpenCV, OCR Processing
+* **Vansh Gupta** – Database (PostgreSQL), Version Control (Git/GitHub), Decentralized Storage (IPFS/Pinata)
+* **Arpit Kesarvani** – System Design & Architecture
+* **Divyansh Dubey** – Frontend Development (HTML, CSS, JavaScript, Tailwind CSS)
+  
 ## 🚀 Key Features (Prototype Scope)
 
 - **📄 Cryptographic Certificate Hashing:** Generates SHA-256 digital signatures for academic PDFs embedded into QR codes.
