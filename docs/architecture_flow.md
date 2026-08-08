@@ -59,6 +59,7 @@ graph TD
 Workflow Step-by-Step Description
 
 Stage 1: Issuance Workflow (Institution Side)
+
 1)Institution Authenticates: Authorized personnel log into the AVFA portal via a secure Role-Based Access Control (RBAC) system.
 
 2)Enter Details: Academic records (student name, degree, GPA, issue date) are entered via UI forms or bulk CSV upload.
@@ -76,6 +77,7 @@ Stage 1: Issuance Workflow (Institution Side)
 ->IPFS/Blockchain: The encrypted PDF is uploaded to IPFS (InterPlanetary File System) for decentralized storage, and a reference (transaction hash) is committed to the blockchain simulation.
 
 Stage 2: Verification Workflow (Public Side)
+
 1)User Initiates: A third-party verifier (employer, another university) accesses the public verification page.
 
 2)Input Method: The user chooses to Upload the PDF certificate or Scan the QR code on a printed document.
