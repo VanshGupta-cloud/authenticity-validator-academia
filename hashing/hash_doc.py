@@ -30,7 +30,7 @@ def calculate_hash(file_path: str) -> str:
 
 if __name__ == "__main__":
 
-    sample_pdf = "certificate.pdf"
+    sample_pdf = "modified.pdf"
 
     try:
         document_hash = calculate_hash(

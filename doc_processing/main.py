@@ -15,6 +15,9 @@ Certificate field extraction
 RapidFuzz comparison
 ↓
 VERIFIED / FLAGGED
+
+Database integration will later replace the
+temporary trusted certificate record.
 """
 
 from pathlib import Path
@@ -32,31 +35,53 @@ from document_comparison import (
 
 
 # --------------------------------------------------
-# EXPECTED CERTIFICATE
+# TEMPORARY TRUSTED CERTIFICATE
 # --------------------------------------------------
-# Temporary trusted certificate record.
 #
-# In the final SIH system, this data will come
-# from the database.
+# This is only for local testing.
+#
+# Later:
+# PostgreSQL → certificate_id → trusted record
+#
+# The field names here MUST match the
+# field_extractor.py output.
 # --------------------------------------------------
 
 EXPECTED_CERTIFICATE = {
-    "certificate_id": "17245572",
-    "name": "BHUMIKA THAKUR",
+    "certificate_number": "17245572",
+    "student_name": "BHUMIKA THAKUR",
+    "student_roll_no": "17245572",
+    "degree_name": "SECONDARY SCHOOL EXAMINATION, 2020",
+    "issue_date": "27/03/2004",
     "institution": "43140-CONVENT OF JESUS AND MARY DISTT SHIMLA HP",
-    "course": "Secondary School Examination",
-    "date": "27/03/2004",
 }
 
 
-def process_certificate(pdf_path: str):
+def process_certificate(
+    pdf_path: str,
+    trusted_certificate: dict | None = None,
+):
     """
-    Process a certificate PDF and compare
-    OCR-extracted fields with the trusted
-    certificate record.
+    Process a certificate PDF and compare the
+    extracted certificate fields with trusted data.
+
+    Parameters:
+        pdf_path:
+            Path to uploaded certificate PDF.
+
+        trusted_certificate:
+            Trusted certificate record.
+
+            Currently this comes from the temporary
+            local dictionary.
+
+            Later this will come from PostgreSQL.
     """
 
     pdf_path = Path(pdf_path)
+
+    if trusted_certificate is None:
+        trusted_certificate = EXPECTED_CERTIFICATE
 
     if not pdf_path.exists():
         raise FileNotFoundError(
@@ -66,18 +91,26 @@ def process_certificate(pdf_path: str):
     print("\n--- PDF PROCESSING ---")
     print(f"Input PDF: {pdf_path}")
 
+    # --------------------------------------------------
+    # PDF → IMAGES
+    # --------------------------------------------------
+
     pages = pdf_to_images(
         str(pdf_path),
-        dpi=200
+        dpi=200,
     )
 
     print(f"Pages found: {len(pages)}")
 
     all_results = []
 
+    # --------------------------------------------------
+    # PROCESS EACH PAGE
+    # --------------------------------------------------
+
     for page_number, page_image in enumerate(
         pages,
-        start=1
+        start=1,
     ):
 
         print(
@@ -95,12 +128,12 @@ def process_certificate(pdf_path: str):
         )
 
         # --------------------------------------------------
-        # PDF PAGE → IMAGE
+        # SAVE PDF PAGE AS IMAGE
         # --------------------------------------------------
 
         success = cv2.imwrite(
             str(raw_image_path),
-            page_image
+            page_image,
         )
 
         if not success:
@@ -115,7 +148,7 @@ def process_certificate(pdf_path: str):
 
         clean_image = preprocess_image(
             str(raw_image_path),
-            str(clean_image_path)
+            str(clean_image_path),
         )
 
         # --------------------------------------------------
@@ -151,7 +184,7 @@ def process_certificate(pdf_path: str):
 
         comparison = compare_certificate(
             certificate_data,
-            EXPECTED_CERTIFICATE
+            trusted_certificate,
         )
 
         print(
@@ -177,40 +210,46 @@ def process_certificate(pdf_path: str):
         )
 
         # --------------------------------------------------
-        # VERIFICATION STATUS
+        # DOCUMENT STATUS
         # --------------------------------------------------
 
         matched = is_document_match(
             comparison
         )
 
-        if matched:
-            status = "VERIFIED"
-        else:
-            status = "FLAGGED"
+        status = (
+            "VERIFIED"
+            if matched
+            else "FLAGGED"
+        )
 
         print(
             f"\nDOCUMENT STATUS: {status}"
         )
 
         # --------------------------------------------------
-        # STORE RESULT
+        # STORE PAGE RESULT
         # --------------------------------------------------
 
-        all_results.append({
-            "page": page_number,
-            "certificate": certificate_data,
-            "comparison": comparison,
-            "status": status,
-        })
+        all_results.append(
+            {
+                "page": page_number,
+                "certificate": certificate_data,
+                "comparison": comparison,
+                "status": status,
+            }
+        )
 
     return all_results
 
 
 def main():
+    """
+    Local testing entry point.
+    """
 
-    # Certificate PDF used for testing.
-    pdf_path = "modified.pdf"
+    # Test certificate PDF.
+    pdf_path = "certificate.pdf"
 
     try:
 
@@ -235,7 +274,8 @@ def main():
             )
 
             print(
-                f"Status: {result['status']}"
+                f"Status: "
+                f"{result['status']}"
             )
 
             print(
@@ -246,7 +286,7 @@ def main():
     except (
         FileNotFoundError,
         ValueError,
-        OSError
+        OSError,
     ) as error:
 
         print(
