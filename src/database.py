@@ -1,5 +1,14 @@
-# TEMPORARY: in-memory stand-in for the users table.
-# Replace with real Supabase/Postgres connection once Vansh's DATABASE_URL is ready.
-# Nothing outside this file needs to change when that happens.
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+from src.config import DATABASE_URL
 
-fake_users_db = {}
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
