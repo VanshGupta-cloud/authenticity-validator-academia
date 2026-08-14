@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, TIMESTAMP, text, Boolean
+from sqlalchemy import Column, String, ForeignKey, TIMESTAMP, text, Boolean, Text
 from sqlalchemy.dialects.postgresql import UUID
 from src.database import Base
 
@@ -32,3 +32,35 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False)
     created_at = Column(TIMESTAMP)
+
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
+    )
+    certificate_number = Column(String, unique=True, nullable=False)
+    student_name = Column(String, nullable=False)
+    course_name = Column(String, nullable=False)
+    issue_date = Column(String, nullable=False)
+    sha256_hash = Column(String, nullable=False)
+    digital_signature = Column(Text, nullable=False)
+
+    institution_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("institutions.id"),
+        nullable=False
+    )
+    issuer_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False
+    )
+    batch_id = Column(UUID(as_uuid=True), nullable=True)
+
+    status = Column(String, server_default="ISSUED")
+    revocation_reason = Column(String, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))

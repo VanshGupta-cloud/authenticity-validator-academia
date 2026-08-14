@@ -1,12 +1,15 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
 from src.database import get_db
-from src.routers import auth
+from src.routers import auth, certificates  # 1. Import the certificates router
 
 app = FastAPI(title="Authenticity Validator for Academia")
 
+# 2. Register both routers so FastAPI exposes their endpoints
 app.include_router(auth.router)
+app.include_router(certificates.router)
 
 @app.get("/")
 def root():
