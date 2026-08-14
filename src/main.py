@@ -2,12 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.database import get_db
-from src.routers import auth, institutions
+from src.routers import auth, institutions, certificate_issue
 
 app = FastAPI(title="Authenticity Validator for Academia")
 
 app.include_router(auth.router)
 app.include_router(institutions.router)
+app.include_router(certificate_issue.router)
 
 @app.get("/")
 def root():

@@ -8,10 +8,12 @@ from sqlalchemy import text
 from src.database import get_db
 from src.schemas import (
     InstitutionRegisterRequest, InstitutionRegisterResponse,
-    OTPVerifyRequest, OTPVerifyResponse, SetPasswordRequest
+    OTPVerifyRequest, OTPVerifyResponse, SetPasswordRequest,
+    InstitutionLoginRequest, InstitutionLoginResponse
 )
 from src.email_service import send_otp_email
 from src.security import hash_password
+from src.security import verify_password, create_access_token
 
 def generate_institution_code(name: str) -> str:
     slug = re.sub(r'[^A-Z0-9]', '', name.upper())[:10]
@@ -174,4 +176,26 @@ def set_password(
 
     return {
         "message": "Password set successfully. You can now log in."
+    }
+
+@router.post("/login", response_model=InstitutionLoginResponse)
+def login_institution(payload: InstitutionLoginRequest, db: Session = Depends(get_db)):
+    row = db.execute(
+        text("SELECT id, name, password_hash, is_verified FROM institutions WHERE official_email = :email"),
+        {"email": payload.official_email}
+    ).fetchone()
+
+    if not row or not row.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(payload.password, row.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not row.is_verified:
+        raise HTTPException(status_code=403, detail="Institution not verified")
+
+    token = create_access_token({"sub": str(row.id), "type": "institution"})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "institution_id": row.id,
+        "name": row.name,
     }

@@ -1,6 +1,9 @@
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 from enum import Enum
+from typing import Optional
+from datetime import date
+from decimal import Decimal
 
 class Role(str, Enum):
     ADMIN = "ADMIN"
@@ -56,3 +59,34 @@ class OTPVerifyResponse(BaseModel):
 class SetPasswordRequest(BaseModel):
     official_email: EmailStr
     password: str
+
+class InstitutionLoginRequest(BaseModel):
+    official_email: EmailStr
+    password: str
+
+class InstitutionLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    institution_id: UUID
+    name: str
+
+class CertificateIssueRequest(BaseModel):
+    student_name: str
+    student_roll_no: str
+    course_name: str
+    issue_date: str
+    marks: Optional[str] = None
+    cgpa: Optional[str] = None
+
+class CertificateIssueResponse(BaseModel):
+    id: UUID
+    certificate_number: str
+    student_name: str
+    student_roll_no: str
+    course_name: str
+    issue_date: date
+    marks: Optional[Decimal] = None
+    cgpa: Optional[Decimal] = None
+    sha256_hash: str
+    digital_signature: str
+    status: str

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, ForeignKey, TIMESTAMP, text, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from src.database import Base
+from sqlalchemy import Numeric
 
 
 class Institution(Base):
@@ -31,4 +32,27 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP)
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    certificate_number = Column(String, unique=True, nullable=False)
+    institution_id = Column(UUID(as_uuid=True), ForeignKey("institutions.id"), nullable=False)
+    issuer_id = Column(UUID(as_uuid=True), nullable=True)
+    batch_id = Column(UUID(as_uuid=True), nullable=True)
+    student_name = Column(String, nullable=False)
+    student_roll_no = Column(String, nullable=False)
+    course_name = Column(String, nullable=False)
+    issue_date = Column(String, nullable=False)
+    marks = Column(String, nullable=True)
+    cgpa = Column(String, nullable=True)
+    sha256_hash = Column(String, nullable=False)
+    digital_signature = Column(String, nullable=False)
+    qr_code_url = Column(String, nullable=True)
+    pdf_url = Column(String, nullable=True)
+    status = Column(String, nullable=False)
+    revocation_reason = Column(String, nullable=True)
+    revoked_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP)
