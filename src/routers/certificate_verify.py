@@ -42,7 +42,10 @@ def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(
         degree_name=row.course_name,
         issue_date=str(row.issue_date),
         institution_id=str(row.institution_id),
+        marks=row.marks,
+        cgpa=row.cgpa,
     )
+    print("PAYLOAD:", recomputed_payload)
     recomputed_hash = hash_certificate(recomputed_payload)
 
     hash_match = (recomputed_hash == row.sha256_hash)

@@ -8,6 +8,8 @@ from src.database import get_db
 from src import schemas
 from src.security import decode_access_token
 from src.certificate_crypto import build_canonical_payload, hash_certificate, sign_hash_from_pem
+from src.certificate_crypto import build_canonical_payload, hash_certificate, sign_hash_from_pem
+
 
 router = APIRouter(prefix="/certificates", tags=["certificate-issuance"])
 security = HTTPBearer()
@@ -42,7 +44,10 @@ def issue_certificate(
         degree_name=payload.course_name,
         issue_date=payload.issue_date,
         institution_id=institution_id,
+        marks=payload.marks,
+        cgpa=payload.cgpa,
     )
+    print("PAYLOAD:", cert_payload)
     cert_hash = hash_certificate(cert_payload)
     signature = sign_hash_from_pem(cert_hash, inst_row.private_key)
     cert_number = f"CERT-{datetime.utcnow().year}-{str(uuid_lib.uuid4())[:8].upper()}"

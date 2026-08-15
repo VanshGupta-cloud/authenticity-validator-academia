@@ -5,26 +5,22 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
 
-def build_canonical_payload(
-    student_name,
-    student_roll_no,
-    degree_name,
-    issue_date,
-    institution_id
-):
+def build_canonical_payload(student_name, student_roll_no, degree_name, issue_date, institution_id, marks=None, cgpa=None):
+    def normalize_number(val):
+        if val is None:
+            return None
+        return f"{float(val):.2f}"
+
     payload = {
         "student_name": student_name,
         "student_roll_no": student_roll_no,
         "degree_name": degree_name,
         "issue_date": str(issue_date),
         "institution_id": str(institution_id),
+        "marks": normalize_number(marks),
+        "cgpa": normalize_number(cgpa),
     }
-
-    return json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":")
-    )
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
 
 def hash_certificate(payload_str: str) -> str:
@@ -76,6 +72,7 @@ def verify_signature(
 
     except Exception:
         return False
+
 
 def sign_hash_from_pem(hash_hex: str, private_key_pem: str) -> str:
     private_key = serialization.load_pem_private_key(private_key_pem.encode(), password=None)
