@@ -67,3 +67,23 @@ class Certificate(Base):
     revocation_reason = Column(String, nullable=True)
     revoked_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
+
+
+class VerificationLog(Base):
+    __tablename__ = "verification_logs"
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
+    )
+    certificate_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("certificates.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    queried_hash = Column(String(64), nullable=False)
+    verification_status = Column(String(20), nullable=False)  # VALID, TAMPERED, REVOKED, NOT_FOUND
+    verified_by_ip = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"))
