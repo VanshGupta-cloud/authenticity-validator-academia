@@ -90,3 +90,25 @@ class CertificateIssueResponse(BaseModel):
     sha256_hash: str
     digital_signature: str
     status: str
+
+class CertificateVerifyRequest(BaseModel):
+    certificate_id: Optional[UUID] = None
+    certificate_number: Optional[str] = None
+
+class FieldMismatch(BaseModel):
+    field: str
+    document_value: Optional[str] = None
+    record_value: Optional[str] = None
+
+class CertificateVerifyResponse(BaseModel):
+    hash_signature_valid: bool
+    tamper_detected: bool
+    certificate_number: Optional[str] = None
+    student_name: Optional[str] = None
+    student_roll_no: Optional[str] = None
+    course_name: Optional[str] = None
+    issue_date: Optional[date] = None
+    marks: Optional[Decimal] = None
+    cgpa: Optional[Decimal] = None
+    status: Optional[str] = None
+    message: str

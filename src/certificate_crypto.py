@@ -76,3 +76,12 @@ def verify_signature(
 
     except Exception:
         return False
+
+def sign_hash_from_pem(hash_hex: str, private_key_pem: str) -> str:
+    private_key = serialization.load_pem_private_key(private_key_pem.encode(), password=None)
+    signature = private_key.sign(
+        hash_hex.encode(),
+        padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+        hashes.SHA256(),
+    )
+    return base64.b64encode(signature).decode()

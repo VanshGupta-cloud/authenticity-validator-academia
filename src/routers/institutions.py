@@ -14,16 +14,39 @@ from src.schemas import (
 from src.email_service import send_otp_email
 from src.security import hash_password
 from src.security import verify_password, create_access_token
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+
+
+def generate_institution_keypair():
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_key = private_key.public_key()
+
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode()
+
+    public_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+
+    return private_pem, public_pem
+
 
 def generate_institution_code(name: str) -> str:
     slug = re.sub(r'[^A-Z0-9]', '', name.upper())[:10]
     suffix = secrets.token_hex(2).upper()
     return f"{slug}-{suffix}"
 
+
 router = APIRouter(
     prefix="/institutions",
     tags=["institutions"]
 )
+
 
 @router.post(
     "/register",
@@ -48,24 +71,29 @@ def register_institution(
             status_code=409,
             detail="Institution already registered with this email"
         )
+
     institution_code = generate_institution_code(payload.name)
     otp_code = str(random.randint(100000, 999999))
     otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
 
+    private_key_pem, public_key_pem = generate_institution_keypair()
+
     result = db.execute(
-    text("""
-        INSERT INTO institutions (name, code, email, official_email, otp_code, otp_expires_at, is_email_verified, is_verified)
-        VALUES (:name, :code, :email, :email, :otp, :expires, false, false)
-        RETURNING id, name, official_email, is_email_verified
-    """),
-    {
-        "name": payload.name,
-        "code": institution_code,
-        "email": payload.official_email,
-        "otp": otp_code,
-        "expires": otp_expires_at
-    }
-).fetchone()
+        text("""
+            INSERT INTO institutions (name, code, email, official_email, otp_code, otp_expires_at, is_email_verified, is_verified, public_key, private_key)
+            VALUES (:name, :code, :email, :email, :otp, :expires, false, false, :public_key, :private_key)
+            RETURNING id, name, official_email, is_email_verified
+        """),
+        {
+            "name": payload.name,
+            "code": institution_code,
+            "email": payload.official_email,
+            "otp": otp_code,
+            "expires": otp_expires_at,
+            "public_key": public_key_pem,
+            "private_key": private_key_pem,
+        }
+    ).fetchone()
     db.commit()
 
     send_otp_email(
@@ -80,10 +108,8 @@ def register_institution(
         "is_email_verified": result.is_email_verified,
     }
 
-@router.post(
-    "/verify-otp",
-    response_model=OTPVerifyResponse
-)
+
+@router.post("/verify-otp", response_model=OTPVerifyResponse)
 def verify_otp(
     payload: OTPVerifyRequest,
     db: Session = Depends(get_db)
@@ -131,6 +157,7 @@ def verify_otp(
         "is_email_verified": True
     }
 
+
 @router.post("/set-password")
 def set_password(
     payload: SetPasswordRequest,
@@ -177,6 +204,7 @@ def set_password(
     return {
         "message": "Password set successfully. You can now log in."
     }
+
 
 @router.post("/login", response_model=InstitutionLoginResponse)
 def login_institution(payload: InstitutionLoginRequest, db: Session = Depends(get_db)):
