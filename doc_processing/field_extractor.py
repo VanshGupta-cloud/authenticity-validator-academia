@@ -1,33 +1,21 @@
-
 """
 Certificate Field Extractor
 
 Converts EasyOCR output into structured certificate fields.
 
-The extractor supports:
+Supports:
 1. Label-based certificates
-   Example: Name: Rahul Kumar
-
 2. Layout-based certificates
-   Example:
-       This is to certify that
-       BHUMIKA THAKUR
 
-       Roll No.
-       17245572
-
-       School
-       CONVENT OF JESUS AND MARY
-
-The output structure is aligned with the AVFA
-certificate database fields.
+Output is aligned with the AVFA certificate database schema.
 """
 
 import re
+from datetime import datetime
 
 
 # --------------------------------------------------
-# OCR RESULTS → TEXT
+# OCR RESULTS -> TEXT
 # --------------------------------------------------
 
 def ocr_results_to_text(ocr_results):
@@ -84,6 +72,32 @@ def get_lines(text):
     ]
 
 
+def is_label_line(value):
+    """
+    Check whether a value looks like another certificate label.
+    """
+
+    if not value:
+        return False
+
+    return bool(
+        re.search(
+            r"\b("
+            r"name|student|candidate|"
+            r"roll|registration|enrollment|"
+            r"institution|university|college|institute|school|"
+            r"course|degree|program|programme|"
+            r"marks|mark|percentage|"
+            r"cgpa|gpa|"
+            r"issue\s*date|date\s*of\s*issue|"
+            r"certificate"
+            r")\b",
+            value,
+            re.IGNORECASE,
+        )
+    )
+
+
 # --------------------------------------------------
 # LABEL-BASED EXTRACTION
 # --------------------------------------------------
@@ -113,7 +127,7 @@ def extract_labeled_field(text, labels):
             match = re.search(
                 pattern,
                 line,
-                re.IGNORECASE
+                re.IGNORECASE,
             )
 
             if match:
@@ -124,8 +138,8 @@ def extract_labeled_field(text, labels):
 
 def extract_value_after_label(text, labels):
     """
-    Extract a value that appears on the line immediately
-    after a label.
+    Extract a value appearing on the same line or
+    immediately after a label.
 
     Example:
 
@@ -142,16 +156,15 @@ def extract_value_after_label(text, labels):
             if re.search(
                 rf"\b{re.escape(label)}\b",
                 line,
-                re.IGNORECASE
+                re.IGNORECASE,
             ):
 
-                # First check if the value is on
-                # the same line.
+                # Same line
                 same_line = re.search(
                     rf"{re.escape(label)}"
                     rf"\s*[:\-]?\s+(.+)$",
                     line,
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 )
 
                 if same_line:
@@ -160,18 +173,20 @@ def extract_value_after_label(text, labels):
                         same_line.group(1)
                     )
 
-                    if value:
+                    if value and not is_label_line(value):
                         return value
 
-                # Otherwise check the next line.
+                # Next line
                 if index + 1 < len(lines):
 
                     next_line = clean_value(
                         lines[index + 1]
                     )
 
-                    if next_line:
-
+                    if (
+                        next_line
+                        and not is_label_line(next_line)
+                    ):
                         return next_line
 
     return None
@@ -191,8 +206,7 @@ def extract_certificate_id(text):
         Certificate No: CERT-2026-00125
         Certificate Number: CERT-2026-00125
 
-    Important:
-        Roll number is NOT treated as certificate ID.
+    Roll number is NOT treated as certificate ID.
     """
 
     pattern = (
@@ -205,7 +219,7 @@ def extract_certificate_id(text):
     match = re.search(
         pattern,
         text,
-        re.IGNORECASE
+        re.IGNORECASE,
     )
 
     if match:
@@ -215,7 +229,7 @@ def extract_certificate_id(text):
 
 
 # --------------------------------------------------
-# NAME
+# STUDENT NAME
 # --------------------------------------------------
 
 def extract_name(text):
@@ -226,14 +240,27 @@ def extract_name(text):
 
         Name: Rahul Kumar
 
-    and CBSE-style layout:
+    and:
 
         This is to certify that
         BHUMIKA THAKUR
     """
 
-    # Normal labelled format
     value = extract_labeled_field(
+        text,
+        [
+            "Name",
+            "Student Name",
+            "Candidate Name",
+            "Recipient Name",
+            "Holder Name",
+        ],
+    )
+
+    if value:
+        return value
+
+    value = extract_value_after_label(
         text,
         [
             "Name",
@@ -249,15 +276,12 @@ def extract_name(text):
 
     lines = get_lines(text)
 
-    # CBSE-style certificate:
-    # "This is to certify that"
-    # followed by student name.
     for index, line in enumerate(lines):
 
         if re.search(
             r"this\s+is\s+to\s+certif",
             line,
-            re.IGNORECASE
+            re.IGNORECASE,
         ):
 
             if index + 1 < len(lines):
@@ -266,15 +290,13 @@ def extract_name(text):
                     lines[index + 1]
                 )
 
-                if candidate:
-
-                    # Avoid obvious labels.
-                    if not re.search(
-                        r"roll|mother|father|date|school",
-                        candidate,
-                        re.IGNORECASE
-                    ):
-                        return candidate
+                if candidate and not re.search(
+                    r"roll|mother|father|date|school|"
+                    r"certificate|course|degree",
+                    candidate,
+                    re.IGNORECASE,
+                ):
+                    return candidate
 
     return None
 
@@ -286,46 +308,26 @@ def extract_name(text):
 def extract_roll_number(text):
     """
     Extract student roll / registration number.
-
-    Examples:
-
-        Roll Number: 17245572
-        Roll No. 17245572
-        Registration No: ABC123
     """
 
-    value = extract_labeled_field(
-        text,
-        [
-            "Roll Number",
-            "Roll No",
-            "Roll No.",
-            "Registration Number",
-            "Registration No",
-            "Registration No.",
-            "Enrollment Number",
-            "Enrollment No",
-            "Enrollment No.",
-        ],
-    )
+    labels = [
+        "Roll Number",
+        "Roll No",
+        "Roll No.",
+        "Registration Number",
+        "Registration No",
+        "Registration No.",
+        "Enrollment Number",
+        "Enrollment No",
+        "Enrollment No.",
+    ]
+
+    value = extract_labeled_field(text, labels)
 
     if value:
         return value
 
-    value = extract_value_after_label(
-        text,
-        [
-            "Roll Number",
-            "Roll No",
-            "Roll No.",
-            "Registration Number",
-            "Registration No",
-            "Registration No.",
-            "Enrollment Number",
-            "Enrollment No",
-            "Enrollment No.",
-        ],
-    )
+    value = extract_value_after_label(text, labels)
 
     if value:
         return value
@@ -345,20 +347,31 @@ def extract_institution(text):
 
         Institution: ABC University
 
-    and layout:
-
-        ABC UNIVERSITY
-        School
+    and layout-based certificates where the institution
+    appears near the top of the certificate.
     """
 
+    labels = [
+        "Institution",
+        "University",
+        "College",
+        "Institute",
+        "School",
+    ]
+
+    # Label-based
     value = extract_labeled_field(
         text,
-        [
-            "Institution",
-            "University",
-            "College",
-            "Institute",
-        ],
+        labels,
+    )
+
+    if value:
+        return value
+
+    # Label followed by value
+    value = extract_value_after_label(
+        text,
+        labels,
     )
 
     if value:
@@ -366,8 +379,6 @@ def extract_institution(text):
 
     lines = get_lines(text)
 
-    # Look for a line immediately before:
-    # School / College / University / Institute
     institution_words = (
         "school",
         "college",
@@ -375,6 +386,11 @@ def extract_institution(text):
         "institute",
     )
 
+    # Example:
+    #
+    # ABC UNIVERSITY
+    # School
+    #
     for index, line in enumerate(lines):
 
         if line.lower().strip() in institution_words:
@@ -385,67 +401,144 @@ def extract_institution(text):
                     lines[index - 1]
                 )
 
-                if candidate:
+                if candidate and not re.search(
+                    r"marks|certificate|examination|subject|"
+                    r"achievement|diploma",
+                    candidate,
+                    re.IGNORECASE,
+                ):
+                    return candidate
 
-                    # Ignore generic headings.
-                    if not re.search(
-                        r"marks|certificate|examination|subject",
-                        candidate,
-                        re.IGNORECASE
-                    ):
-                        return candidate
+    # --------------------------------------------------
+    # TOP-OF-CERTIFICATE FALLBACK
+    # --------------------------------------------------
+
+    ignored_headings = (
+        "certificate",
+        "certificate of achievement",
+        "certificate of completion",
+        "certificate of merit",
+        "this is to certify",
+        "award",
+        "achievement",
+    )
+
+    # Inspect only the first few OCR lines.
+    for line in lines[:6]:
+
+        candidate = clean_value(line)
+
+        if not candidate:
+            continue
+
+        lower = candidate.lower()
+
+        if lower in ignored_headings:
+            continue
+
+        if re.search(
+            r"\b(university|college|institute|school)\b",
+            candidate,
+            re.IGNORECASE,
+        ):
+            return candidate
 
     return None
 
 
 # --------------------------------------------------
-# DEGREE / COURSE
+# COURSE / DEGREE
 # --------------------------------------------------
+
+def looks_like_course(value):
+    """
+    Determine whether an OCR value looks like a course/degree
+    rather than another certificate field.
+    """
+
+    if not value:
+        return False
+
+    value = clean_value(value)
+
+    # Never accept labels/fields as course names.
+    if re.search(
+        r"\b("
+        r"roll|roll\s*no|roll\s*number|"
+        r"registration|enrollment|"
+        r"certificate\s*(id|no|number)|"
+        r"issue\s*date|date\s*of\s*issue|"
+        r"marks?|percentage|cgpa|gpa|"
+        r"institution|university|college|institute|school"
+        r")\b",
+        value,
+        re.IGNORECASE,
+    ):
+        return False
+
+    # A pure number is not a course.
+    if re.fullmatch(r"[\d\W_]+", value):
+        return False
+
+    return True
+
 
 def extract_degree(text):
     """
-    Extract degree/course/program.
+    Extract course / degree / programme.
 
-    Supports:
-
-        Degree: Bachelor of Technology
-        Course: Computer Science
-
-    Also supports examination-style certificates:
-
-        SECONDARY SCHOOL EXAMINATION, 2020
+    Primary database field:
+        course_name
     """
+
+    labels = [
+        "Degree",
+        "Course",
+        "Program",
+        "Programme",
+        "Course Name",
+        "Degree Name",
+    ]
 
     value = extract_labeled_field(
         text,
-        [
-            "Degree",
-            "Course",
-            "Program",
-            "Programme",
-            "Course Name",
-        ],
+        labels,
     )
 
-    if value:
+    if value and looks_like_course(value):
+        return value
+
+    value = extract_value_after_label(
+        text,
+        labels,
+    )
+
+    if value and looks_like_course(value):
         return value
 
     lines = get_lines(text)
 
-    # Search for common academic examination names.
+    # Search for common academic names.
     for line in lines:
+
+        if not looks_like_course(line):
+            continue
 
         if re.search(
             r"(secondary school examination|"
             r"senior school certificate examination|"
             r"higher secondary|"
             r"bachelor|master|diploma|"
-            r"b\.?tech|b\.?e\.?|m\.?tech|"
-            r"b\.?sc|m\.?sc|b\.?com|m\.?com)",
+            r"b\.?\s*tech|"
+            r"b\.?\s*e\.?|"
+            r"m\.?\s*tech|"
+            r"b\.?\s*sc|"
+            r"m\.?\s*sc|"
+            r"b\.?\s*com|"
+            r"m\.?\s*com)",
             line,
-            re.IGNORECASE
+            re.IGNORECASE,
         ):
-
             return clean_value(line)
 
     return None
@@ -457,40 +550,96 @@ def extract_degree(text):
 
 def extract_date_from_value(value):
     """
-    Extract a date from a supplied value.
+    Extract and normalize a date.
+
+    Output is ALWAYS:
+
+        YYYY-MM-DD
+
+    Supported inputs:
+
+        15-08-2026
+        15/08/2026
+        15.08.2026
+        2026-08-15
+        2026/08/15
     """
 
     if not value:
         return None
 
+    value = str(value).strip()
+
     patterns = [
-        r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
-        r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b",
-        r"\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b",
+        (
+            r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b",
+            "%d/%m/%Y",
+        ),
+        (
+            r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b",
+            "%d.%m.%Y",
+        ),
+        (
+            r"\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b",
+            "%Y-%m-%d",
+        ),
+        (
+            r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2})\b",
+            "%d/%m/%y",
+        ),
     ]
 
-    for pattern in patterns:
+    for pattern, date_format in patterns:
 
         match = re.search(
             pattern,
-            value
+            value,
         )
 
-        if match:
-            return match.group(0)
+        if not match:
+            continue
+
+        raw_date = match.group(0)
+
+        # Normalize separators for parsing.
+        if date_format == "%d/%m/%Y":
+            raw_date = raw_date.replace("-", "/")
+
+        elif date_format == "%Y-%m-%d":
+            raw_date = raw_date.replace("/", "-")
+
+        elif date_format == "%d/%m/%y":
+            raw_date = raw_date.replace("-", "/")
+
+        try:
+            parsed_date = datetime.strptime(
+                raw_date,
+                date_format,
+            )
+
+            return parsed_date.strftime(
+                "%Y-%m-%d"
+            )
+
+        except ValueError:
+            continue
 
     return None
 
 
 def extract_date(text):
     """
-    Extract an explicitly labelled issue date.
+    Extract the certificate issue date.
 
-    Important:
-        Do NOT blindly take the first date in the document.
+    Priority:
 
-    This prevents a student's Date of Birth from
-    accidentally becoming the certificate issue date.
+    1. Issue Date
+    2. Date of Issue
+    3. Certificate Date
+    4. Date Issued
+    5. Generic Date
+
+    Result is always YYYY-MM-DD.
     """
 
     lines = get_lines(text)
@@ -502,7 +651,7 @@ def extract_date(text):
         "Date Issued",
     ]
 
-    # First look for explicitly labelled issue date.
+    # Explicit label
     value = extract_labeled_field(
         text,
         date_labels,
@@ -513,7 +662,7 @@ def extract_date(text):
     if date:
         return date
 
-    # Check value on the next line.
+    # Label followed by value
     value = extract_value_after_label(
         text,
         date_labels,
@@ -524,18 +673,16 @@ def extract_date(text):
     if date:
         return date
 
-    # Finally look for a generic "Date:" label.
+    # Generic Date:
     for index, line in enumerate(lines):
 
         if re.match(
             r"^\s*date\s*[:\-]",
             line,
-            re.IGNORECASE
+            re.IGNORECASE,
         ):
 
-            date = extract_date_from_value(
-                line
-            )
+            date = extract_date_from_value(line)
 
             if date:
                 return date
@@ -549,17 +696,65 @@ def extract_date(text):
                 if date:
                     return date
 
-    # Do NOT return an arbitrary date from the document.
     return None
 
 
 # --------------------------------------------------
-# GPA / PERCENTAGE
+# MARKS
 # --------------------------------------------------
 
-def extract_gpa(text):
+def extract_marks(text):
     """
-    Extract GPA / CGPA / percentage when explicitly labelled.
+    Extract marks / percentage.
+
+    Examples:
+
+        Marks: 85%
+        Marks: 85
+        Percentage: 85%
+        Marks
+        85%
+    """
+
+    labels = [
+        "Marks",
+        "Mark",
+        "Percentage",
+        "Percentage Marks",
+        "Marks Obtained",
+    ]
+
+    value = extract_labeled_field(
+        text,
+        labels,
+    )
+
+    if value:
+        return clean_value(value)
+
+    value = extract_value_after_label(
+        text,
+        labels,
+    )
+
+    if value:
+        return clean_value(value)
+
+    return None
+
+
+# --------------------------------------------------
+# CGPA / GPA
+# --------------------------------------------------
+
+def extract_cgpa(text):
+    """
+    Extract CGPA / GPA.
+
+    Examples:
+
+        CGPA: 9.2
+        GPA: 9.2
     """
 
     return extract_labeled_field(
@@ -567,7 +762,12 @@ def extract_gpa(text):
         [
             "CGPA",
             "GPA",
-            "Percentage",
+        ],
+    ) or extract_value_after_label(
+        text,
+        [
+            "CGPA",
+            "GPA",
         ],
     )
 
@@ -580,16 +780,8 @@ def build_certificate_fields(text):
     """
     Build the structured AVFA certificate record.
 
-    Field names are aligned with the database:
-
-        certificate_number
-        student_name
-        student_roll_no
-        degree_name
-        issue_date
-
-    Compatibility aliases are also returned for
-    the current RapidFuzz prototype.
+    Primary fields match the certificate database schema.
+    Compatibility aliases are retained for RapidFuzz.
     """
 
     certificate_number = extract_certificate_id(
@@ -604,7 +796,11 @@ def build_certificate_fields(text):
         text
     )
 
-    degree_name = extract_degree(
+    institution = extract_institution(
+        text
+    )
+
+    course_name = extract_degree(
         text
     )
 
@@ -612,18 +808,18 @@ def build_certificate_fields(text):
         text
     )
 
-    institution = extract_institution(
+    marks = extract_marks(
         text
     )
 
-    gpa = extract_gpa(
+    cgpa = extract_cgpa(
         text
     )
 
     return {
 
         # ------------------------------------------
-        # Database-aligned fields
+        # DATABASE-ALIGNED FIELDS
         # ------------------------------------------
 
         "certificate_number": certificate_number,
@@ -632,16 +828,18 @@ def build_certificate_fields(text):
 
         "student_roll_no": student_roll_no,
 
-        "degree_name": degree_name,
+        "institution": institution,
+
+        "course_name": course_name,
 
         "issue_date": issue_date,
 
-        "institution": institution,
+        "marks": marks,
 
-        "gpa": gpa,
+        "cgpa": cgpa,
 
         # ------------------------------------------
-        # Compatibility fields
+        # COMPATIBILITY ALIASES
         # ------------------------------------------
 
         "certificate_id": certificate_number,
@@ -650,9 +848,13 @@ def build_certificate_fields(text):
 
         "roll_number": student_roll_no,
 
-        "degree": degree_name,
+        "degree_name": course_name,
 
-        "course": degree_name,
+        "degree": course_name,
+
+        "course": course_name,
+
+        "gpa": cgpa,
 
         "date": issue_date,
     }
@@ -694,19 +896,24 @@ def extract_from_ocr_text(text):
 if __name__ == "__main__":
 
     sample_text = """
-    Certificate of Achievement
+    ABC UNIVERSITY
 
-    Name: Rahul Kumar
+    CERTIFICATE OF ACHIEVEMENT
 
-    Institution: ABC University
+    This is to certify that
+    Avika Srivastava
 
-    Course: Bachelor of Technology
+    Roll Number: 20260001
 
-    Certificate ID: CERT-2026-00125
+    Bachelor of Technology in Computer Science
 
-    Roll No: 123456
+    Certificate Number: CERT-2026-F7BCAB87
 
-    Issue Date: 09/08/2026
+    Issue Date: 15-08-2026
+
+    Marks: 85%
+
+    CGPA: 9.2
     """
 
     result = extract_from_ocr_text(
