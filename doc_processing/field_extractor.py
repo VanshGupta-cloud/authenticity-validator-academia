@@ -110,10 +110,14 @@ def extract_labeled_field(text, labels):
     Supports:
 
         Name: Rahul Kumar
-        Institution: ABC University
-        Course: Computer Science
+        Name - Rahul Kumar
+        Name Rahul Kumar
 
-    The colon/dash is optional.
+    Example:
+
+        Marks: 85%
+        Marks - 85%
+        Marks 85%
     """
 
     lines = get_lines(text)
@@ -124,7 +128,8 @@ def extract_labeled_field(text, labels):
 
             pattern = (
                 rf"^\s*{re.escape(label)}"
-                rf"\s*(?::|-)\s*(.+?)\s*$"
+                rf"(?:\s*[:\-]\s*|\s+)"
+                rf"(.+?)\s*$"
             )
 
             match = re.search(
@@ -134,6 +139,7 @@ def extract_labeled_field(text, labels):
             )
 
             if match:
+
                 return clean_value(
                     match.group(1)
                 )
@@ -465,6 +471,9 @@ def looks_like_degree(value):
 
     value = clean_value(value)
 
+    if not value:
+        return False
+
     # Reject obvious numeric identifiers.
     if re.fullmatch(
         r"[\d\s\-\/]+",
@@ -472,7 +481,7 @@ def looks_like_degree(value):
     ):
         return False
 
-    # Reject obvious labels/metadata.
+    # Reject obvious labels / metadata.
     if re.search(
         r"roll\s*(number|no)?|"
         r"registration|"
@@ -481,8 +490,13 @@ def looks_like_degree(value):
         r"issue\s*date|"
         r"date\s*of\s*issue|"
         r"marks|"
+        r"score|"
+        r"percentage|"
         r"cgpa|"
-        r"gpa",
+        r"gpa|"
+        r"student\s*(id|number)?|"
+        r"admission\s*(number|no)?|"
+        r"serial\s*(number|no)?",
         value,
         re.IGNORECASE,
     ):
@@ -517,15 +531,23 @@ def looks_like_degree(value):
 
     return False
 
-
 def extract_degree(text):
     """
     Extract degree/course/program.
 
-    Explicit labels are preferred.
+    Priority:
 
-    Falls back to common academic degree phrases.
+    1. Explicit labelled degree/course field.
+    2. Common academic degree phrase.
+
+    Metadata such as roll number, registration number,
+    marks, GPA, and certificate number is never returned
+    as the degree.
     """
+
+    # --------------------------------------------------
+    # 1. Explicit labelled extraction
+    # --------------------------------------------------
 
     value = extract_labeled_field(
         text,
@@ -543,14 +565,86 @@ def extract_degree(text):
     if value and looks_like_degree(value):
         return value
 
-    lines = get_lines(text)
+    # --------------------------------------------------
+    # 2. Search for known academic degree phrases
+    # --------------------------------------------------
 
-    for line in lines:
+    academic_patterns = [
+        r"\bBachelor\s+of\s+[A-Za-z][A-Za-z .&-]*",
+        r"\bMaster\s+of\s+[A-Za-z][A-Za-z .&-]*",
+        r"\bB\.?\s*Tech\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bM\.?\s*Tech\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bB\.?\s*E\.?\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bM\.?\s*E\.?\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bB\.?\s*Sc\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bM\.?\s*Sc\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bB\.?\s*Com\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bM\.?\s*Com\b(?:\s+in\s+[A-Za-z][A-Za-z .&-]*)?",
+        r"\bBCA\b",
+        r"\bMCA\b",
+        r"\bPh\.?\s*D\b",
+        r"\bDiploma\s+in\s+[A-Za-z][A-Za-z .&-]*",
+        r"\bHigher\s+Secondary\b",
+        r"\bSenior\s+School\s+Certificate\s+Examination\b",
+        r"\bSecondary\s+School\s+Examination\b",
+    ]
 
-        candidate = clean_value(line)
+    for pattern in academic_patterns:
 
-        if looks_like_degree(candidate):
-            return candidate
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE,
+        )
+
+        if match:
+
+            candidate = clean_value(
+                match.group(0)
+            )
+
+            if candidate and looks_like_degree(candidate):
+                return candidate
+
+    return None
+
+
+def extract_course(text):
+    """
+    Extract course/program specialization.
+
+    Supports:
+
+        Course: Computer Science
+        Course Name: Computer Science
+        Branch: Computer Science
+        Specialization: Data Science
+        Stream: Science
+    """
+
+    course_labels = [
+        "Course Name",
+        "Course",
+        "Branch",
+        "Specialization",
+        "Stream",
+    ]
+
+    value = extract_labeled_field(
+        text,
+        course_labels,
+    )
+
+    if value:
+        return value
+
+    value = extract_value_after_label(
+        text,
+        course_labels,
+    )
+
+    if value:
+        return value
 
     return None
 
@@ -769,6 +863,8 @@ def build_certificate_fields(text):
     Compatibility aliases are also returned.
     """
 
+ 
+
     certificate_number = extract_certificate_id(
         text
     )
@@ -784,6 +880,11 @@ def build_certificate_fields(text):
     degree_name = extract_degree(
         text
     )
+    
+    course_name = extract_course(
+        text
+    )
+
 
     issue_date = extract_date(
         text
@@ -800,32 +901,31 @@ def build_certificate_fields(text):
     cgpa = extract_cgpa(
         text
     )
+    return {
+        "certificate_number": certificate_number,
+        "student_name": student_name,
+        "student_roll_no": student_roll_no,
 
-   return {
-    "certificate_number": certificate_number,
-    "student_name": student_name,
-    "student_roll_no": student_roll_no,
+        "degree_name": degree_name,
+        "course_name": course_name or degree_name,
 
-    "degree_name": degree_name,
-    "course_name": degree_name,
+        "issue_date": issue_date,
 
-    "issue_date": issue_date,
+        "institution": institution,
+        "institution_name": institution,
 
-    "institution": institution,
-    "institution_name": institution,
+        "marks": marks,
+        "cgpa": cgpa,
 
-    "marks": marks,
-    "cgpa": cgpa,
-
-    # Compatibility aliases
-    "certificate_id": certificate_number,
-    "name": student_name,
-    "roll_number": student_roll_no,
-    "degree": degree_name,
-    "course": degree_name,
-    "date": issue_date,
-    "gpa": cgpa,
-}
+        # Compatibility aliases
+        "certificate_id": certificate_number,
+        "name": student_name,
+        "roll_number": student_roll_no,
+        "degree": degree_name,
+        "course": course_name or degree_name,
+        "date": issue_date,
+        "gpa": cgpa,
+    }
 
 
 # --------------------------------------------------
