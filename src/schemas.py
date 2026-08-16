@@ -120,6 +120,7 @@ class CertificateVerifyResponse(BaseModel):
 class CertificateBase(BaseModel):
     certificate_number: str
     student_name: str
+    student_roll_no: str
     course_name: str
     issue_date: date
     sha256_hash: str
