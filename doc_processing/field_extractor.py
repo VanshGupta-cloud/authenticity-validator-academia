@@ -801,53 +801,31 @@ def build_certificate_fields(text):
         text
     )
 
-    return {
+   return {
+    "certificate_number": certificate_number,
+    "student_name": student_name,
+    "student_roll_no": student_roll_no,
 
-        # ------------------------------------------
-        # Database-related certificate fields
-        # ------------------------------------------
+    "degree_name": degree_name,
+    "course_name": degree_name,
 
-        "certificate_number": certificate_number,
+    "issue_date": issue_date,
 
-        "student_name": student_name,
+    "institution": institution,
+    "institution_name": institution,
 
-        "student_roll_no": student_roll_no,
+    "marks": marks,
+    "cgpa": cgpa,
 
-        # OCR calls this degree_name.
-        # DB column is course_name.
-        "degree_name": degree_name,
-
-        # Convenience field for the DB/API contract.
-        "course_name": degree_name,
-
-        "issue_date": issue_date,
-
-        # This is an institution NAME, not institution_id.
-        "institution": institution,
-
-        "marks": marks,
-
-        "cgpa": cgpa,
-
-        # ------------------------------------------
-        # Compatibility aliases
-        # ------------------------------------------
-
-        "certificate_id": certificate_number,
-
-        "name": student_name,
-
-        "roll_number": student_roll_no,
-
-        "degree": degree_name,
-
-        "course": degree_name,
-
-        "date": issue_date,
-
-        # Keep old gpa alias for compatibility.
-        "gpa": cgpa,
-    }
+    # Compatibility aliases
+    "certificate_id": certificate_number,
+    "name": student_name,
+    "roll_number": student_roll_no,
+    "degree": degree_name,
+    "course": degree_name,
+    "date": issue_date,
+    "gpa": cgpa,
+}
 
 
 # --------------------------------------------------
