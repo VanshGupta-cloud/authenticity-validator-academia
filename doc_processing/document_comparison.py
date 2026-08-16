@@ -33,7 +33,7 @@ COMPARISON_FIELDS = [
     "student_roll_no",
     "degree_name",
     "issue_date",
-    "institution",
+    "institution_name",
 ]
 
 
