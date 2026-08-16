@@ -1,19 +1,30 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.database import get_db
 from src.schemas import CertificateVerifyRequest, CertificateVerifyResponse
 from src.certificate_crypto import build_canonical_payload, hash_certificate, verify_signature
-from fastapi import UploadFile, File
+from src.log_service import log_verification
 import shutil
 import tempfile
 import os
 import cv2
 from datetime import datetime
+
 router = APIRouter(prefix="/certificates", tags=["certificate-verification"])
 
+
+def normalize_date(date_str):
+    for fmt in ("%d-%m-%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            continue
+    return date_str
+
+
 @router.post("/verify", response_model=CertificateVerifyResponse)
-def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(get_db)):
+def verify_certificate(payload: CertificateVerifyRequest, request: Request, db: Session = Depends(get_db)):
     if not payload.certificate_id and not payload.certificate_number:
         raise HTTPException(status_code=400, detail="Provide either certificate_id or certificate_number")
 
@@ -31,7 +42,6 @@ def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(
     if not row:
         raise HTTPException(status_code=404, detail="Certificate not found")
 
-    # Get the institution's public key to verify the signature
     inst_row = db.execute(
         text("SELECT public_key FROM institutions WHERE id = :id"),
         {"id": str(row.institution_id)}
@@ -40,7 +50,6 @@ def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(
     if not inst_row or not inst_row.public_key:
         raise HTTPException(status_code=500, detail="Institution public key not found")
 
-    # Recompute the hash from the DB's own stored fields
     recomputed_payload = build_canonical_payload(
         student_name=row.student_name,
         student_roll_no=row.student_roll_no,
@@ -50,7 +59,6 @@ def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(
         marks=row.marks,
         cgpa=row.cgpa,
     )
-    print("PAYLOAD:", recomputed_payload)
     recomputed_hash = hash_certificate(recomputed_payload)
 
     hash_match = (recomputed_hash == row.sha256_hash)
@@ -58,6 +66,14 @@ def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(
 
     hash_signature_valid = hash_match and signature_valid
     tamper_detected = not hash_match
+
+    log_verification(
+        db=db,
+        queried_hash=recomputed_hash,
+        verification_status="VALID" if hash_signature_valid else "TAMPERED",
+        certificate_id=row.id,
+        request=request,
+    )
 
     return {
         "hash_signature_valid": hash_signature_valid,
@@ -72,6 +88,7 @@ def verify_certificate(payload: CertificateVerifyRequest, db: Session = Depends(
         "status": row.status,
         "message": "Certificate is authentic and unaltered." if hash_signature_valid else "Certificate record integrity check failed — possible tampering detected.",
     }
+
 
 @router.post("/verify-document")
 async def verify_certificate_document(
@@ -96,13 +113,16 @@ async def verify_certificate_document(
         all_ocr_results = []
         for i, img in enumerate(images):
             page_temp_path = f"{tmp_path}_page{i}.jpg"
-        cv2.imwrite(page_temp_path, img)
-        processed = preprocess_image(page_temp_path)
-        ocr_results = extract_text(processed)
-        all_ocr_results.extend(ocr_results)
-        os.remove(page_temp_path)
+            cv2.imwrite(page_temp_path, img)
+            processed = preprocess_image(page_temp_path)
+            ocr_results = extract_text(processed)
+            all_ocr_results.extend(ocr_results)
+            os.remove(page_temp_path)
 
         ocr_fields = extract_certificate_fields(all_ocr_results)
+
+        if ocr_fields.get("issue_date"):
+            ocr_fields["issue_date"] = normalize_date(ocr_fields["issue_date"])
 
         row = db.execute(
             text("SELECT * FROM certificates WHERE student_roll_no = :roll"),
@@ -160,15 +180,3 @@ async def verify_certificate_document(
         }
     finally:
         os.unlink(tmp_path)
-
-def normalize_date(date_str):
-    for fmt in ("%d-%m-%Y", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
-        except (ValueError, TypeError):
-            continue
-    return date_str
-
-# after ocr_fields is extracted:
-if ocr_fields.get("issue_date"):
-    ocr_fields["issue_date"] = normalize_date(ocr_fields["issue_date"])
