@@ -1,31 +1,23 @@
-from enum import Enum
-from typing import Optional
-
-from datetime import datetime, date
-from decimal import Decimal
-from uuid import UUID
+from typing import Optional, Dict, Any
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr
-
-# Enums
-class Role(str, Enum):
-    ADMIN = "ADMIN"
-    ISSUER = "ISSUER"
-    VERIFIER = "VERIFIER"
 
 # Auth & User Schemas
 class RegisterRequest(BaseModel):
-    institution_id: UUID
+    institution_id: Optional[str] = None
     full_name: str
     email: EmailStr
     password: str
-    role: Role
+    role: str = "STUDENT"  # ADMIN, ISSUER, VERIFIER, STUDENT
 
 class UserResponse(BaseModel):
-    id: UUID
+    id: str
     full_name: str
     email: EmailStr
-    role: Role
-    institution_id: UUID
+    role: str
+    institution_id: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -38,41 +30,22 @@ class LoginResponse(BaseModel):
 
 class InstitutionRegisterRequest(BaseModel):
     name: str
-    official_email: EmailStr
-    address: str | None = None
-
-
-class InstitutionRegisterResponse(BaseModel):
-    id: UUID
-    name: str
-    official_email: EmailStr
-    is_email_verified: bool
-
-
-class OTPVerifyRequest(BaseModel):
-    official_email: EmailStr
-    otp_code: str
-
-
-class OTPVerifyResponse(BaseModel):
-    message: str
-    is_email_verified: bool
-
-
-class SetPasswordRequest(BaseModel):
-    official_email: EmailStr
-    password: str
+    code: Optional[str] = "GIT"
+    email: EmailStr
+    password: Optional[str] = "admin123"
 
 class InstitutionLoginRequest(BaseModel):
-    official_email: EmailStr
+    email: EmailStr
     password: str
 
 class InstitutionLoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    institution_id: UUID
+    institution_id: str
     name: str
+    email: str
 
+# Certificate Schemas
 class CertificateIssueRequest(BaseModel):
     student_name: str
     student_roll_no: str
@@ -82,43 +55,91 @@ class CertificateIssueRequest(BaseModel):
     cgpa: Optional[str] = None
 
 class CertificateIssueResponse(BaseModel):
-    id: UUID
+    id: str
     certificate_number: str
     student_name: str
     student_roll_no: str
     course_name: str
-    issue_date: date
-    marks: Optional[Decimal] = None
-    cgpa: Optional[Decimal] = None
+    issue_date: str
+    marks: Optional[str] = None
+    cgpa: Optional[str] = None
     sha256_hash: str
     digital_signature: str
     status: str
-# Certificate Schemas
+    qr_code_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 class CertificateBase(BaseModel):
     certificate_number: str
     student_name: str
     student_roll_no: str
     course_name: str
-    issue_date: date
+    issue_date: str
+    marks: Optional[str] = None
+    cgpa: Optional[str] = None
     sha256_hash: str
     digital_signature: str
 
 class CertificateCreate(CertificateBase):
-    institution_id: UUID
-    issuer_id: UUID
-    batch_id: Optional[UUID] = None
+    institution_id: Optional[str] = None
+    issuer_id: Optional[str] = None
+    batch_id: Optional[str] = None
 
 class CertificateUpdate(BaseModel):
     status: Optional[str] = None
     revocation_reason: Optional[str] = None
 
 class CertificateResponse(CertificateBase):
-    id: UUID
-    institution_id: UUID
-    issuer_id: UUID
-    batch_id: Optional[UUID] = None
+    id: str
+    institution_id: Optional[str] = None
+    issuer_id: Optional[str] = None
+    batch_id: Optional[str] = None
     status: str
     revocation_reason: Optional[str] = None
-    created_at: datetime
+    revoked_at: Optional[datetime] = None
+    qr_code_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+# Verification & Revocation
+class VerifyRequest(BaseModel):
+    queried_hash: Optional[str] = None
+    certificate_number: Optional[str] = None
+
+class CertificateDetail(BaseModel):
+    certificate_number: str
+    student_name: str
+    student_roll_no: str
+    degree_name: str
+    institution_name: str
+    issue_date: str
+    cgpa: Optional[str] = None
+    sha256_hash: str
+    status: str
+    revocation_reason: Optional[str] = None
+    revoked_at: Optional[str] = None
+
+class VerificationChecks(BaseModel):
+    hash_match: bool
+    signature_valid: bool
+    tamper_detected: bool
+    ledger_anchored: bool
+
+class VerifyResponse(BaseModel):
+    verification_status: str  # VALID, TAMPERED, REVOKED, NOT_FOUND
+    certificate: Optional[CertificateDetail] = None
+    checks: VerificationChecks
+    message: str
+
+class RevokeRequest(BaseModel):
+    revocation_reason: str
+
+class RevokeResponse(BaseModel):
+    id: str
+    status: str
+    revocation_reason: str
+    revoked_at: datetime
