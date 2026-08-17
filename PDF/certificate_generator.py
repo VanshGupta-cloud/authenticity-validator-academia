@@ -12,11 +12,14 @@ SHA-256 hashing, digital signatures, and database storage
 are handled by separate modules.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Optional
 from uuid import UUID
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -24,12 +27,12 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate,
+    Image,
     Paragraph,
+    SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
-    Image,
 )
 
 from QR.qr_generator import generate_qr_code
@@ -78,9 +81,6 @@ def generate_certificate_pdf(
     """
     Generate an AVFA certificate PDF with an embedded QR code.
 
-    The certificate number is supplied by the certificate
-    issuance system.
-
     Parameters
     ----------
     certificate:
@@ -122,6 +122,12 @@ def generate_certificate_pdf(
             "Certificate number cannot be empty."
         )
 
+    if certificate.certificate_number != certificate_number:
+        raise ValueError(
+            "Certificate number mismatch between certificate "
+            "data and certificate_number argument."
+        )
+
     if not institution_name:
         raise ValueError(
             "Institution name cannot be empty."
@@ -130,6 +136,31 @@ def generate_certificate_pdf(
     if not verification_base_url:
         raise ValueError(
             "Verification base URL cannot be empty."
+        )
+
+    if not certificate.student_name:
+        raise ValueError(
+            "Student name cannot be empty."
+        )
+
+    if not certificate.student_roll_no:
+        raise ValueError(
+            "Student roll number cannot be empty."
+        )
+
+    if not certificate.course_name:
+        raise ValueError(
+            "Course name cannot be empty."
+        )
+
+    # Prevent unsafe certificate numbers from being used
+    # as filenames.
+    if not re.fullmatch(
+        r"CERT-\d{4}-[A-Za-z0-9_-]+",
+        certificate_number,
+    ):
+        raise ValueError(
+            "Invalid certificate number format."
         )
 
     # ---------------------------------------------------------
@@ -141,21 +172,6 @@ def generate_certificate_pdf(
     output_file.parent.mkdir(
         parents=True,
         exist_ok=True,
-    )
-
-    # ---------------------------------------------------------
-    # GENERATE QR CODE
-    # ---------------------------------------------------------
-
-    qr_output_path = (
-        output_file.parent
-        / f"{certificate_number}_qr.png"
-    )
-
-    qr_path = generate_qr_code(
-        certificate_number=certificate_number,
-        verification_base_url=verification_base_url,
-        output_path=str(qr_output_path),
     )
 
     # ---------------------------------------------------------
@@ -246,327 +262,364 @@ def generate_certificate_pdf(
     )
 
     # ---------------------------------------------------------
-    # CERTIFICATE CONTENT
+    # TEMPORARY QR DIRECTORY
     # ---------------------------------------------------------
 
-    story = []
+    with TemporaryDirectory() as temp_dir:
 
-    story.append(
-        Paragraph(
-            institution_name.upper(),
-            institution_style,
+        qr_output_path = (
+            Path(temp_dir)
+            / f"{certificate_number}_qr.png"
         )
-    )
 
-    story.append(
-        Paragraph(
-            "CERTIFICATE OF ACHIEVEMENT",
-            title_style,
+        qr_path = generate_qr_code(
+            certificate_number=certificate_number,
+            verification_base_url=verification_base_url,
+            output_path=str(qr_output_path),
         )
-    )
 
-    story.append(
-        Paragraph(
-            "This is to certify that",
-            subtitle_style,
-        )
-    )
+        # -----------------------------------------------------
+        # CERTIFICATE CONTENT
+        # -----------------------------------------------------
 
-    story.append(
-        Paragraph(
-            certificate.student_name.upper(),
-            student_style,
-        )
-    )
+        story = []
 
-    story.append(
-        Paragraph(
-            f"Roll Number: "
-            f"<b>{certificate.student_roll_no}</b>",
-            normal_center,
-        )
-    )
-
-    story.append(
-        Spacer(1, 10 * mm)
-    )
-
-    story.append(
-        Paragraph(
-            "has successfully completed the course",
-            normal_center,
-        )
-    )
-
-    story.append(
-        Paragraph(
-            f"<b>{certificate.course_name}</b>",
-            course_style,
-        )
-    )
-
-    # ---------------------------------------------------------
-    # CERTIFICATE DETAILS
-    # ---------------------------------------------------------
-
-    details = [
-        [
+        # Institution name
+        story.append(
             Paragraph(
-                "<b>Certificate Number</b>",
-                label_style,
-            ),
-            certificate_number,
-        ],
-        [
-            Paragraph(
-                "<b>Issue Date</b>",
-                label_style,
-            ),
-            certificate.issue_date.strftime("%d-%m-%Y"),
-        ],
-    ]
+                escape(institution_name.upper()),
+                institution_style,
+            )
+        )
 
-    if certificate.marks is not None:
-        details.append(
+        # Certificate title
+        story.append(
+            Paragraph(
+                "CERTIFICATE OF ACHIEVEMENT",
+                title_style,
+            )
+        )
+
+        # Subtitle
+        story.append(
+            Paragraph(
+                "This is to certify that",
+                subtitle_style,
+            )
+        )
+
+        # Student name
+        story.append(
+            Paragraph(
+                escape(certificate.student_name.upper()),
+                student_style,
+            )
+        )
+
+        # Roll number
+        story.append(
+            Paragraph(
+                f"Roll Number: "
+                f"<b>{escape(certificate.student_roll_no)}</b>",
+                normal_center,
+            )
+        )
+
+        story.append(
+            Spacer(1, 10 * mm)
+        )
+
+        # Course description
+        story.append(
+            Paragraph(
+                "has successfully completed the course",
+                normal_center,
+            )
+        )
+
+        # Course name
+        story.append(
+            Paragraph(
+                f"<b>{escape(certificate.course_name)}</b>",
+                course_style,
+            )
+        )
+
+        # -----------------------------------------------------
+        # CERTIFICATE DETAILS
+        # -----------------------------------------------------
+
+        details = [
             [
                 Paragraph(
-                    "<b>Marks</b>",
+                    "<b>Certificate Number</b>",
                     label_style,
                 ),
-                str(certificate.marks),
-            ]
-        )
-
-    if certificate.cgpa is not None:
-        details.append(
+                escape(certificate_number),
+            ],
             [
                 Paragraph(
-                    "<b>CGPA</b>",
+                    "<b>Issue Date</b>",
                     label_style,
                 ),
-                str(certificate.cgpa),
-            ]
-        )
-
-    details_table = Table(
-        details,
-        colWidths=[
-            60 * mm,
-            80 * mm,
-        ],
-        hAlign="CENTER",
-    )
-
-    details_table.setStyle(
-        TableStyle(
-            [
-                (
-                    "GRID",
-                    (0, 0),
-                    (-1, -1),
-                    0.7,
-                    colors.black,
+                escape(
+                    certificate.issue_date.strftime(
+                        "%d-%m-%Y"
+                    )
                 ),
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "MIDDLE",
-                ),
-                (
-                    "LEFTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    8,
-                ),
-                (
-                    "RIGHTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    8,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    7,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    7,
-                ),
-            ]
-        )
-    )
-
-    story.append(details_table)
-
-    story.append(
-        Spacer(1, 12 * mm)
-    )
-
-    # ---------------------------------------------------------
-    # QR CODE
-    # ---------------------------------------------------------
-
-    qr_image = Image(
-        qr_path,
-        width=35 * mm,
-        height=35 * mm,
-    )
-
-    qr_table = Table(
-        [
-            [qr_image],
-            [
-                Paragraph(
-                    "Scan to verify certificate",
-                    footer_style,
-                )
             ],
-        ],
-        colWidths=[
-            50 * mm,
-        ],
-        hAlign="CENTER",
-    )
+        ]
 
-    qr_table.setStyle(
-        TableStyle(
-            [
-                (
-                    "ALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "CENTER",
-                ),
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "MIDDLE",
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    3,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    3,
-                ),
-            ]
-        )
-    )
+        if certificate.marks is not None:
+            details.append(
+                [
+                    Paragraph(
+                        "<b>Marks</b>",
+                        label_style,
+                    ),
+                    escape(str(certificate.marks)),
+                ]
+            )
 
-    story.append(qr_table)
+        if certificate.cgpa is not None:
+            details.append(
+                [
+                    Paragraph(
+                        "<b>CGPA</b>",
+                        label_style,
+                    ),
+                    escape(str(certificate.cgpa)),
+                ]
+            )
 
-    story.append(
-        Spacer(1, 12 * mm)
-    )
-
-    # ---------------------------------------------------------
-    # SIGNATURE AREA
-    # ---------------------------------------------------------
-
-    signature_table = Table(
-        [
-            [
-                "________________________",
-                "________________________",
+        details_table = Table(
+            details,
+            colWidths=[
+                60 * mm,
+                80 * mm,
             ],
+            hAlign="CENTER",
+        )
+
+        details_table.setStyle(
+            TableStyle(
+                [
+                    (
+                        "GRID",
+                        (0, 0),
+                        (-1, -1),
+                        0.7,
+                        colors.black,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        8,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        8,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        7,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        7,
+                    ),
+                ]
+            )
+        )
+
+        story.append(details_table)
+
+        story.append(
+            Spacer(1, 12 * mm)
+        )
+
+        # -----------------------------------------------------
+        # QR CODE
+        # -----------------------------------------------------
+
+        qr_image = Image(
+            qr_path,
+            width=35 * mm,
+            height=35 * mm,
+        )
+
+        qr_table = Table(
             [
-                "Authorized Signatory",
-                "Institution Authority",
+                [qr_image],
+                [
+                    Paragraph(
+                        "Scan to verify certificate",
+                        footer_style,
+                    )
+                ],
             ],
-        ],
-        colWidths=[
-            70 * mm,
-            70 * mm,
-        ],
-        hAlign="CENTER",
-    )
+            colWidths=[
+                50 * mm,
+            ],
+            hAlign="CENTER",
+        )
 
-    signature_table.setStyle(
-        TableStyle(
+        qr_table.setStyle(
+            TableStyle(
+                [
+                    (
+                        "ALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        3,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        3,
+                    ),
+                ]
+            )
+        )
+
+        story.append(qr_table)
+
+        story.append(
+            Spacer(1, 12 * mm)
+        )
+
+        # -----------------------------------------------------
+        # SIGNATURE AREA
+        # -----------------------------------------------------
+
+        signature_table = Table(
             [
-                (
-                    "ALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "CENTER",
-                ),
-                (
-                    "FONTNAME",
-                    (0, 1),
-                    (-1, 1),
-                    "Helvetica-Bold",
-                ),
-                (
-                    "FONTSIZE",
-                    (0, 0),
-                    (-1, -1),
-                    10,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    4,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    4,
-                ),
-            ]
+                [
+                    "________________________",
+                    "________________________",
+                ],
+                [
+                    "Authorized Signatory",
+                    "Institution Authority",
+                ],
+            ],
+            colWidths=[
+                70 * mm,
+                70 * mm,
+            ],
+            hAlign="CENTER",
         )
-    )
 
-    story.append(signature_table)
-
-    story.append(
-        Spacer(1, 10 * mm)
-    )
-
-    # ---------------------------------------------------------
-    # CERTIFICATE ID
-    # ---------------------------------------------------------
-
-    story.append(
-        Paragraph(
-            f"Certificate ID: "
-            f"<b>{certificate_number}</b>",
-            normal_center,
+        signature_table.setStyle(
+            TableStyle(
+                [
+                    (
+                        "ALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "FONTNAME",
+                        (0, 1),
+                        (-1, 1),
+                        "Helvetica-Bold",
+                    ),
+                    (
+                        "FONTSIZE",
+                        (0, 0),
+                        (-1, -1),
+                        10,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                ]
+            )
         )
-    )
 
-    story.append(
-        Spacer(1, 6 * mm)
-    )
+        story.append(signature_table)
 
-    # ---------------------------------------------------------
-    # FOOTER
-    # ---------------------------------------------------------
-
-    story.append(
-        Paragraph(
-            "This certificate is digitally verifiable through "
-            "the Authenticity Validator for Academia (AVFA).",
-            footer_style,
+        story.append(
+            Spacer(1, 10 * mm)
         )
-    )
 
-    # ---------------------------------------------------------
-    # BUILD PDF
-    # ---------------------------------------------------------
+        # -----------------------------------------------------
+        # CERTIFICATE ID
+        # -----------------------------------------------------
 
-    document.build(story)
+        story.append(
+            Paragraph(
+                f"Certificate ID: "
+                f"<b>{escape(certificate_number)}</b>",
+                normal_center,
+            )
+        )
+
+        story.append(
+            Spacer(1, 6 * mm)
+        )
+
+        # -----------------------------------------------------
+        # FOOTER
+        # -----------------------------------------------------
+
+        story.append(
+            Paragraph(
+                "This certificate is digitally verifiable through "
+                "the Authenticity Validator for Academia (AVFA).",
+                footer_style,
+            )
+        )
+
+        # -----------------------------------------------------
+        # BUILD PDF
+        # -----------------------------------------------------
+
+        try:
+            document.build(story)
+
+        except Exception:
+            # Remove partially generated PDF if ReportLab
+            # fails during document generation.
+            if output_file.exists():
+                output_file.unlink()
+
+            raise
 
     return str(output_file)
