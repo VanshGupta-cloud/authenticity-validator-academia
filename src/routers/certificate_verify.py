@@ -140,9 +140,9 @@ async def verify_certificate_document(
         db_fields = {
             "student_name": row.student_name,
             "student_roll_no": row.student_roll_no,
-            "degree_name": row.course_name,
+            "course_name": row.course_name,
             "issue_date": str(row.issue_date),
-            "institution": inst_row.name if inst_row else "",
+            "institution_name": inst_row.name if inst_row else "",
         }
 
         comparison = compare_certificate(ocr_fields, db_fields)

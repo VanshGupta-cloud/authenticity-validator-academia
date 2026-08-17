@@ -93,6 +93,7 @@ class CertificateIssueResponse(BaseModel):
     sha256_hash: str
     digital_signature: str
     status: str
+    pdf_url: Optional[str] = None
 
 class CertificateVerifyRequest(BaseModel):
     certificate_id: Optional[UUID] = None
