@@ -1,0 +1,803 @@
+/**
+ * AVFA — Authenticity Validator for Academia (Final Workflow)
+ * 10-Page Application Controller, Midnight Academy Theme & Live Camera QR Scanner
+ */
+
+// Application State
+const state = {
+  token: localStorage.getItem('avfa_jwt') || null,
+  institution: JSON.parse(localStorage.getItem('avfa_institution') || 'null'),
+  currentView: 'page-1-landing',
+  pendingEmail: '',
+  selectedPdfFile: null,
+  recentCertificates: [],
+  activeVerifyTab: 'A',
+  html5QrScanner: null,
+  isScanning: false,
+  cameraFacingMode: 'environment'
+};
+
+// API Services
+const API = {
+  baseUrl: '',
+
+  async request(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const headers = options.headers || {};
+
+    if (state.token) {
+      headers['Authorization'] = `Bearer ${state.token}`;
+    }
+
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const res = await fetch(url, { ...options, headers });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const errorMsg = (data && (data.detail || data.message)) || `Request failed (${res.status})`;
+      throw new Error(errorMsg);
+    }
+    return data;
+  },
+
+  // Page 2: Institution Login
+  async loginInstitution(official_email, password) {
+    return this.request('/institutions/login', {
+      method: 'POST',
+      body: JSON.stringify({ official_email, password })
+    });
+  },
+
+  // Page 3: Institution Register
+  async registerInstitution(name, official_email, address) {
+    return this.request('/institutions/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, official_email, address })
+    });
+  },
+
+  // Page 4: Verify OTP
+  async verifyOtp(official_email, otp_code) {
+    return this.request('/institutions/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ official_email, otp_code })
+    });
+  },
+
+  // Page 5: Set Password
+  async setPassword(official_email, password, confirm_password) {
+    return this.request('/institutions/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ official_email, password, confirm_password })
+    });
+  },
+
+  // Page 6: Dashboard Stats & Recent Certificates
+  async getDashboardStats() {
+    return this.request('/certificates/stats');
+  },
+
+  async getCertificates(search = '') {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.request(`/certificates/${query}`);
+  },
+
+  // Page 7: Issue Certificate
+  async issueCertificate(certData) {
+    return this.request('/certificates/issue', {
+      method: 'POST',
+      body: JSON.stringify(certData)
+    });
+  },
+
+  // Page 9 Tab A: Verify by Certificate Number (Decoded from QR or manually typed)
+  async verifyByNumber(certificate_number) {
+    return this.request('/certificates/verify', {
+      method: 'POST',
+      body: JSON.stringify({ certificate_number })
+    });
+  },
+
+  // Page 9 Tab B: Verify by Document
+  async verifyByDocument(formData) {
+    return this.request('/certificates/verify-document', {
+      method: 'POST',
+      body: formData
+    });
+  }
+};
+
+// Initialize Application
+document.addEventListener('DOMContentLoaded', () => {
+  updateNavState();
+
+  if (state.token && state.institution) {
+    loadDashboardData();
+  }
+});
+
+// View Router
+function navigateTo(pageId) {
+  // If navigating away from scanner, stop active camera stream
+  if (state.isScanning && pageId !== 'page-9-verify') {
+    stopCameraScanner();
+  }
+
+  state.currentView = pageId;
+
+  document.querySelectorAll('.view-section').forEach(sec => {
+    sec.classList.remove('active');
+  });
+
+  const target = document.getElementById(pageId);
+  if (target) {
+    target.classList.add('active');
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (pageId === 'page-6-dashboard') {
+    loadDashboardData();
+  }
+}
+
+// Navigation Bar Auth State
+function updateNavState() {
+  const loginBtn = document.getElementById('nav-login-btn');
+  const dashGroup = document.getElementById('nav-dashboard-btn-group');
+
+  if (state.token && state.institution) {
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (dashGroup) dashGroup.style.display = 'flex';
+  } else {
+    if (loginBtn) loginBtn.style.display = 'inline-flex';
+    if (dashGroup) dashGroup.style.display = 'none';
+  }
+}
+
+function logoutInstitution() {
+  state.token = null;
+  state.institution = null;
+  localStorage.removeItem('avfa_jwt');
+  localStorage.removeItem('avfa_institution');
+  updateNavState();
+  showToast('Logged out successfully', 'info');
+  navigateTo('page-1-landing');
+}
+
+// ============================================================================
+// PAGE 2: INSTITUTION LOGIN
+// ============================================================================
+async function handleInstitutionLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  try {
+    const res = await API.loginInstitution(email, password);
+    state.token = res.access_token;
+    state.institution = {
+      id: res.institution_id,
+      name: res.institution_name || 'Academic Institution',
+      email: res.official_email || email
+    };
+
+    localStorage.setItem('avfa_jwt', res.access_token);
+    localStorage.setItem('avfa_institution', JSON.stringify(state.institution));
+
+    updateNavState();
+    showToast(`Welcome back, ${state.institution.name}!`, 'success');
+    navigateTo('page-6-dashboard');
+  } catch (err) {
+    showToast(`Login failed: ${err.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// PAGE 3: INSTITUTION REGISTRATION
+// ============================================================================
+async function handleInstitutionRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const address = document.getElementById('reg-address').value.trim();
+
+  try {
+    const res = await API.registerInstitution(name, email, address);
+    state.pendingEmail = email;
+
+    const emailEl = document.getElementById('otp-target-email');
+    if (emailEl) emailEl.textContent = email;
+
+    showToast(res.message || 'OTP sent to official email', 'success');
+    navigateTo('page-4-otp');
+  } catch (err) {
+    showToast(`Registration failed: ${err.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// PAGE 4: OTP VERIFICATION
+// ============================================================================
+function handleOtpInput(current, nextId) {
+  if (current.value.length >= 1 && nextId) {
+    const next = document.getElementById(nextId);
+    if (next) next.focus();
+  }
+}
+
+async function handleVerifyOtp() {
+  const code = [
+    document.getElementById('otp-1').value,
+    document.getElementById('otp-2').value,
+    document.getElementById('otp-3').value,
+    document.getElementById('otp-4').value,
+    document.getElementById('otp-5').value,
+    document.getElementById('otp-6').value
+  ].join('').trim();
+
+  if (code.length < 6) {
+    showToast('Please enter all 6 digits of the OTP code', 'error');
+    return;
+  }
+
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || 'registrar@nit.ac.in';
+
+  try {
+    const res = await API.verifyOtp(email, code);
+    showToast('OTP verified successfully!', 'success');
+    navigateTo('page-5-password');
+  } catch (err) {
+    showToast(`OTP verification failed: ${err.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// PAGE 5: SET PASSWORD
+// ============================================================================
+async function handleSetPassword() {
+  const pass = document.getElementById('set-pass').value;
+  const confirm = document.getElementById('set-pass-confirm').value;
+
+  if (pass !== confirm) {
+    showToast('Passwords do not match', 'error');
+    return;
+  }
+
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || 'registrar@nit.ac.in';
+
+  try {
+    const res = await API.setPassword(email, pass, confirm);
+    showToast(res.message || 'Password set successfully! Please login.', 'success');
+    navigateTo('page-2-login');
+  } catch (err) {
+    showToast(`Failed to set password: ${err.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// PAGE 6: DASHBOARD (POST-LOGIN)
+// ============================================================================
+async function loadDashboardData(search = '') {
+  const nameEl = document.getElementById('dash-inst-name');
+  if (nameEl && state.institution) {
+    nameEl.textContent = state.institution.name;
+  }
+
+  try {
+    const stats = await API.getDashboardStats();
+    const totalIssued = document.getElementById('dash-total-issued');
+    const activeCerts = document.getElementById('dash-active-certs');
+    const revokedCerts = document.getElementById('dash-revoked-certs');
+
+    if (totalIssued) totalIssued.textContent = stats.certificates_issued;
+    if (activeCerts) activeCerts.textContent = stats.active;
+    if (revokedCerts) revokedCerts.textContent = stats.revoked;
+
+    const certs = await API.getCertificates(search);
+    state.recentCertificates = certs;
+    renderDashboardTable(certs);
+  } catch (err) {
+    console.error('Error loading dashboard data:', err);
+  }
+}
+
+function renderDashboardTable(certs) {
+  const tbody = document.getElementById('dash-cert-table-body');
+  if (!tbody) return;
+
+  if (!certs || certs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No certificate records found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = certs.map(c => `
+    <tr>
+      <td style="font-family: var(--font-mono); font-weight: 700; color: var(--color-gold);">${c.certificate_number}</td>
+      <td style="font-weight: 600;">${c.student_name}</td>
+      <td style="font-family: var(--font-mono); font-size: 0.85rem;">${c.student_roll_no}</td>
+      <td>${c.course_name}</td>
+      <td style="color: var(--color-text-muted); font-size: 0.85rem;">${c.issue_date}</td>
+      <td>
+        <span class="status-pill ${c.status === 'ISSUED' ? 'valid' : 'revoked'}">
+          ${c.status === 'ISSUED' ? 'Active' : 'Revoked'}
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function handleDashboardSearch(query) {
+  loadDashboardData(query);
+}
+
+// ============================================================================
+// PAGE 7: ISSUE NEW CERTIFICATE
+// ============================================================================
+async function handleIssueCertificate() {
+  if (!state.token) {
+    showToast('Please login as an institution to issue certificates', 'error');
+    navigateTo('page-2-login');
+    return;
+  }
+
+  const student_name = document.getElementById('issue-name').value.trim();
+  const student_roll_no = document.getElementById('issue-roll').value.trim();
+  const course_name = document.getElementById('issue-course').value.trim();
+  const issue_date = document.getElementById('issue-date').value;
+  const marksVal = document.getElementById('issue-marks').value.trim();
+  const cgpaVal = document.getElementById('issue-cgpa').value.trim();
+
+  if (!student_name || !student_roll_no || !course_name || !issue_date || !marksVal || !cgpaVal) {
+    showToast('All credential parameters (including Total Marks and CGPA) are mandatory.', 'error');
+    return;
+  }
+
+  const marksInt = parseInt(marksVal, 10);
+  if (isNaN(marksInt)) {
+    showToast('Marks must be a valid integer score.', 'error');
+    return;
+  }
+
+  try {
+    const newCert = await API.issueCertificate({
+      student_name,
+      student_roll_no,
+      course_name,
+      issue_date,
+      marks: String(marksInt),
+      cgpa: cgpaVal
+    });
+
+    document.getElementById('issued-cert-num').textContent = newCert.certificate_number;
+    document.getElementById('issued-cert-hash').textContent = newCert.sha256_hash;
+    document.getElementById('issued-cert-sig').textContent = newCert.digital_signature;
+    document.getElementById('issued-cert-status').innerHTML = `<span class="status-pill valid">${newCert.status}</span>`;
+
+    // Handle generated PDF and Download Certificate button
+    if (newCert.pdf_url) {
+      const pdfCleanUrl = '/' + newCert.pdf_url.replace(/^\/+/, '');
+      const pdfFrame = document.getElementById('issued-pdf-frame');
+      const downloadBtn = document.getElementById('download-cert-btn');
+
+      if (pdfFrame) {
+        pdfFrame.src = pdfCleanUrl;
+      }
+      if (downloadBtn) {
+        downloadBtn.href = pdfCleanUrl;
+        downloadBtn.download = `${newCert.certificate_number}.pdf`;
+      }
+    }
+
+    showToast('Certificate cryptographically signed and PDF generated!', 'success');
+    navigateTo('page-8-issued');
+  } catch (err) {
+    showToast(`Issuance failed: ${err.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// PAGE 9: VERIFY CERTIFICATE (LIVE CAMERA QR SCANNER & TAB B)
+// ============================================================================
+function switchVerifyTab(tab) {
+  state.activeVerifyTab = tab;
+  const btnA = document.getElementById('tab-btn-a');
+  const btnB = document.getElementById('tab-btn-b');
+  const contentA = document.getElementById('verify-content-a');
+  const contentB = document.getElementById('verify-content-b');
+
+  if (tab === 'A') {
+    btnA.classList.add('active');
+    btnB.classList.remove('active');
+    contentA.style.display = 'block';
+    contentB.style.display = 'none';
+  } else {
+    // If leaving Tab A, stop scanner
+    stopCameraScanner();
+    btnB.classList.add('active');
+    btnA.classList.remove('active');
+    contentB.style.display = 'block';
+    contentA.style.display = 'none';
+  }
+}
+
+// Start Live Camera QR Scanner
+async function startCameraScanner() {
+  const idlePlaceholder = document.getElementById('scanner-idle-placeholder');
+  const reticle = document.getElementById('scanner-reticle');
+  const controls = document.getElementById('camera-controls');
+
+  if (typeof Html5Qrcode === 'undefined') {
+    showToast('QR Scanner engine loading... please check internet connection or upload image', 'error');
+    return;
+  }
+
+  try {
+    if (!state.html5QrScanner) {
+      state.html5QrScanner = new Html5Qrcode("qr-reader");
+    }
+
+    idlePlaceholder.style.display = 'none';
+    reticle.style.display = 'block';
+    controls.style.display = 'flex';
+    state.isScanning = true;
+
+    const config = {
+      fps: 15,
+      qrbox: { width: 220, height: 220 },
+      aspectRatio: 1.333
+    };
+
+    await state.html5QrScanner.start(
+      { facingMode: state.cameraFacingMode },
+      config,
+      (decodedText, decodedResult) => {
+        onQrCodeScanned(decodedText);
+      },
+      (errorMessage) => {
+        // Continuous parse frames
+      }
+    );
+
+    showToast('Camera active. Align QR code inside the frame.', 'info');
+  } catch (err) {
+    console.error('Camera Scanner Error:', err);
+    stopCameraScanner();
+    showToast(`Camera access issue: ${err.message || err}. Please allow permissions or use file upload.`, 'error');
+  }
+}
+
+// Stop Live Camera Scanner
+async function stopCameraScanner() {
+  const idlePlaceholder = document.getElementById('scanner-idle-placeholder');
+  const reticle = document.getElementById('scanner-reticle');
+  const controls = document.getElementById('camera-controls');
+
+  if (state.html5QrScanner && state.isScanning) {
+    try {
+      await state.html5QrScanner.stop();
+    } catch (e) {
+      console.warn('Notice on scanner stop:', e);
+    }
+  }
+
+  state.isScanning = false;
+  if (idlePlaceholder) idlePlaceholder.style.display = 'flex';
+  if (reticle) reticle.style.display = 'none';
+  if (controls) controls.style.display = 'none';
+}
+
+// Switch front / back camera
+async function switchCameraFacing() {
+  state.cameraFacingMode = (state.cameraFacingMode === 'environment') ? 'user' : 'environment';
+  if (state.isScanning) {
+    await stopCameraScanner();
+    await startCameraScanner();
+  }
+}
+
+// Scan QR image file from gallery/disk
+async function handleQrImageUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  if (typeof Html5Qrcode === 'undefined') {
+    showToast('QR Scanner engine loading...', 'error');
+    return;
+  }
+
+  const html5QrCode = new Html5Qrcode("qr-reader");
+  try {
+    const decodedText = await html5QrCode.scanFile(file, true);
+    onQrCodeScanned(decodedText);
+  } catch (err) {
+    showToast('No readable QR code found in uploaded image.', 'error');
+  }
+}
+
+// Decoded QR payload handler -> Extracts Certificate ID and auto-verifies
+async function onQrCodeScanned(decodedText) {
+  console.log('QR Code Decoded:', decodedText);
+
+  // Stop camera feed
+  stopCameraScanner();
+
+  // Extract certificate number string from payload
+  // Handles plain string: "CERT-2026-F7BCAB87", "AVFA-GIT-2024-001", or URL: "http://.../?verify=CERT-2024-001"
+  let cleanCertNum = decodedText.trim();
+
+  if (cleanCertNum.includes('verify=')) {
+    const urlParams = new URLSearchParams(cleanCertNum.split('?')[1] || '');
+    cleanCertNum = urlParams.get('verify') || cleanCertNum;
+  } else if (cleanCertNum.includes('hash=')) {
+    const urlParams = new URLSearchParams(cleanCertNum.split('?')[1] || '');
+    cleanCertNum = urlParams.get('hash') || cleanCertNum;
+  }
+
+  showToast(`QR Scanned: ${cleanCertNum}`, 'success');
+
+  // Auto-fill manual input as reference
+  const manualInput = document.getElementById('verify-cert-num');
+  if (manualInput) manualInput.value = cleanCertNum;
+
+  // Execute verification immediately
+  await executeVerificationByNumber(cleanCertNum);
+}
+
+// Manual verify button click handler
+async function handleVerifyByNumber() {
+  const certNum = document.getElementById('verify-cert-num').value.trim();
+  if (!certNum) {
+    showToast('Please enter or scan a certificate number', 'error');
+    return;
+  }
+  await executeVerificationByNumber(certNum);
+}
+
+// Execution core for Tab A (QR Scan & Manual Number)
+async function executeVerificationByNumber(certNum) {
+  try {
+    const res = await API.verifyByNumber(certNum);
+    renderVerificationResultTabA(res, certNum);
+    navigateTo('page-10-result');
+  } catch (err) {
+    showToast(`Verification failed: ${err.message}`, 'error');
+  }
+}
+
+function handlePdfFileSelected(input) {
+  if (input.files && input.files[0]) {
+    state.selectedPdfFile = input.files[0];
+    document.getElementById('selected-file-name').textContent = `Selected: ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+  }
+}
+
+// Tab B Submit: Verify by Document Upload
+async function handleVerifyByDocument() {
+  if (!state.selectedPdfFile) {
+    showToast('Please select or drag-and-drop a PDF certificate file', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', state.selectedPdfFile);
+
+  try {
+    const res = await API.verifyByDocument(formData);
+    renderVerificationResultTabB(res);
+    navigateTo('page-10-result');
+  } catch (err) {
+    showToast(`Document verification failed: ${err.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// PAGE 10: VERIFICATION RESULT RENDERING
+// ============================================================================
+
+// Render Result for Tab A (By Scanned QR / Certificate Number)
+function renderVerificationResultTabA(res, queriedNumber) {
+  const container = document.getElementById('result-container');
+  if (!container) return;
+
+  const found = res.found;
+  const cert = res.certificate;
+  const isAuthentic = res.hash_signature_valid;
+  const isTampered = res.tamper_detected;
+
+  let indicatorHtml = '';
+  if (!found) {
+    indicatorHtml = `
+      <div class="indicator-banner warning">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div>
+          <div>Record Not Found in Institutional Registry</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">No record exists for certificate identifier: ${queriedNumber}</div>
+        </div>
+      </div>
+    `;
+  } else if (isAuthentic && !isTampered) {
+    indicatorHtml = `
+      <div class="indicator-banner valid">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <div>
+          <div>Record Authentic ✅</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">Cryptographic hash matches immutable institutional registry. RSA-2048 signature valid.</div>
+        </div>
+      </div>
+    `;
+  } else {
+    indicatorHtml = `
+      <div class="indicator-banner tampered">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div>
+          <div>Tamper / Revocation Warning ⚠️</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">${cert && cert.status === 'REVOKED' ? `Credential has been revoked: ${cert.revocation_reason || 'Administrative audit'}` : 'Cryptographic integrity violation detected.'}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 800; color: var(--color-secondary);">Verification Result (QR / Certificate ID)</h2>
+      <span class="status-pill ${cert && cert.status === 'ISSUED' ? 'valid' : 'revoked'}">${cert ? cert.status : 'NOT_FOUND'}</span>
+    </div>
+
+    ${indicatorHtml}
+
+    ${cert ? `
+      <div style="background: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">Credential Details</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.92rem;">
+          <div><span style="color: var(--color-text-dim);">Student Name:</span> <strong style="color: var(--color-secondary);">${cert.student_name}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-secondary);">${cert.student_roll_no}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Course / Degree:</span> <strong style="color: var(--color-secondary);">${cert.course_name}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Issue Date:</span> <strong style="color: var(--color-secondary);">${cert.issue_date}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Total Marks:</span> <strong style="color: var(--color-secondary);">${cert.marks || '485'}</strong></div>
+          <div><span style="color: var(--color-text-dim);">CGPA:</span> <strong style="color: var(--color-secondary);">${cert.cgpa || '9.82'}</strong></div>
+        </div>
+
+        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+          <div style="font-size: 0.72rem; color: var(--color-text-dim); text-transform: uppercase; font-weight: 700;">SHA-256 Hash Digest</div>
+          <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--color-text-muted); word-break: break-all; margin-top: 0.25rem;">${cert.sha256_hash}</div>
+        </div>
+      </div>
+    ` : ''}
+
+    <div style="display: flex; gap: 1rem;">
+      <button class="btn btn-primary btn-block" onclick="navigateTo('page-9-verify')">Scan Another Certificate</button>
+      <button class="btn btn-secondary btn-block" onclick="navigateTo('page-1-landing')">Back to Home</button>
+    </div>
+  `;
+}
+
+// Render Result for Tab B (By Document Upload)
+function renderVerificationResultTabB(res) {
+  const container = document.getElementById('result-container');
+  if (!container) return;
+
+  const found = res.found;
+  const docMatches = res.document_matches_record;
+  const mismatches = res.mismatches || [];
+  const record = res.record;
+
+  let indicatorHtml = '';
+  if (!found) {
+    indicatorHtml = `
+      <div class="indicator-banner warning">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div>
+          <div>Document Not Found in Registry</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">The uploaded PDF does not match any registered academic record.</div>
+        </div>
+      </div>
+    `;
+  } else if (docMatches && mismatches.length === 0) {
+    indicatorHtml = `
+      <div class="indicator-banner valid">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <div>
+          <div>Document Matches Record ✅</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">All extracted fields and digital signature match the authentic registered ledger.</div>
+        </div>
+      </div>
+    `;
+  } else {
+    indicatorHtml = `
+      <div class="indicator-banner tampered">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div>
+          <div>Document Discrepancies Detected ⚠️</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">Mismatches found between the uploaded document and the official registered record.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  let mismatchTableHtml = '';
+  if (mismatches.length > 0) {
+    mismatchTableHtml = `
+      <div style="margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-danger); font-size: 0.88rem; margin-bottom: 0.75rem;">Field Mismatch Breakdown</h4>
+        <table class="mismatch-table">
+          <thead>
+            <tr>
+              <th>Field Name</th>
+              <th>Document Value (Uploaded)</th>
+              <th>Record Value (Official Registry)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${mismatches.map(m => `
+              <tr>
+                <td style="font-weight: 600; color: var(--color-gold);">${m.field}</td>
+                <td style="color: var(--color-danger); font-weight: 700;">${m.document_value}</td>
+                <td style="color: var(--color-success); font-weight: 700;">${m.record_value}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 800; color: var(--color-secondary);">Document Verification Result</h2>
+      <span class="status-pill ${docMatches && mismatches.length === 0 ? 'valid' : 'revoked'}">${res.status || (docMatches ? 'ISSUED' : 'TAMPERED')}</span>
+    </div>
+
+    ${indicatorHtml}
+
+    <div style="background: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; font-size: 0.88rem;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span style="color: var(--color-text-dim);">Certificate Number:</span>
+        <strong style="font-family: var(--font-mono); color: var(--color-gold);">${res.certificate_number || 'N/A'}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--color-text-dim);">Status:</span>
+        <strong style="color: var(--color-secondary);">${res.status || 'NOT_FOUND'}</strong>
+      </div>
+    </div>
+
+    ${mismatchTableHtml}
+
+    ${record ? `
+      <div style="background: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">Official Registered Record</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.92rem;">
+          <div><span style="color: var(--color-text-dim);">Student Name:</span> <strong style="color: var(--color-secondary);">${record.student_name}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-secondary);">${record.student_roll_no}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Course / Degree:</span> <strong style="color: var(--color-secondary);">${record.course_name}</strong></div>
+          <div><span style="color: var(--color-text-dim);">Issue Date:</span> <strong style="color: var(--color-secondary);">${record.issue_date}</strong></div>
+        </div>
+      </div>
+    ` : ''}
+
+    <div style="display: flex; gap: 1rem;">
+      <button class="btn btn-primary btn-block" onclick="navigateTo('page-9-verify')">Verify Another Document</button>
+      <button class="btn btn-secondary btn-block" onclick="navigateTo('page-1-landing')">Back to Home</button>
+    </div>
+  `;
+}
+
+// Toast System
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span><span>${message}</span>`;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
