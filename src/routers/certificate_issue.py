@@ -1,56 +1,130 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+import os
+import re
+import uuid as uuid_lib
+from datetime import datetime, date
+from pathlib import Path
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from datetime import datetime
-import uuid
+from sqlalchemy import text
+
 from src.database import get_db
 from src import schemas, models
 from src.security import decode_access_token
-from src.certificate_crypto import build_canonical_payload, hash_certificate, sign_hash
+from src.certificate_crypto import build_canonical_payload, hash_certificate, sign_hash_from_pem, sign_hash
+from PDF.certificate_generator import Certificate, generate_certificate_pdf
 
 router = APIRouter(prefix="/certificates", tags=["certificate-issuance"])
+security = HTTPBearer(auto_error=False)
 
-@router.post("/issue", response_model=schemas.CertificateResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post("/issue", response_model=schemas.CertificateIssueResponse, status_code=status.HTTP_201_CREATED)
 def issue_certificate(
     payload: schemas.CertificateIssueRequest,
     db: Session = Depends(get_db),
-    authorization: str = Header(None)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ):
+    token = credentials.credentials if credentials else None
     institution_id = None
-    issuer_id = None
+    institution_name = "Global Institute of Technology"
+    private_key = None
 
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.replace("Bearer ", "").strip()
+    if token:
         try:
             token_data = decode_access_token(token)
             institution_id = token_data.get("institution_id") or token_data.get("sub")
-            issuer_id = token_data.get("sub")
+            if token_data.get("institution_name"):
+                institution_name = token_data.get("institution_name")
         except Exception:
             pass
+
+    if institution_id:
+        inst = db.query(models.Institution).filter(models.Institution.id == str(institution_id)).first()
+        if inst:
+            institution_name = inst.name
+            private_key = getattr(inst, "private_key", None)
 
     if not institution_id:
         inst = db.query(models.Institution).first()
         if inst:
             institution_id = inst.id
+            institution_name = inst.name
+            private_key = getattr(inst, "private_key", None)
         else:
-            institution_id = str(uuid.uuid4())
+            institution_id = str(uuid_lib.uuid4())
 
-    cert_number = f"CERT-2026-{str(uuid.uuid4())[:8].upper()}"
-
+    # Build canonical payload and hash
     cert_payload = build_canonical_payload(
         student_name=payload.student_name,
         student_roll_no=payload.student_roll_no,
         degree_name=payload.course_name,
-        issue_date=payload.issue_date,
-        institution_id=institution_id,
+        issue_date=str(payload.issue_date),
+        institution_id=str(institution_id),
+        marks=payload.marks,
+        cgpa=payload.cgpa,
     )
     cert_hash = hash_certificate(cert_payload)
-    signature = sign_hash(cert_hash)
 
-    new_cert = models.Certificate(
-        id=str(uuid.uuid4()),
+    if private_key:
+        signature = sign_hash_from_pem(cert_hash, private_key)
+    else:
+        signature = sign_hash(cert_hash)
+
+    cert_number = f"CERT-{datetime.utcnow().year}-{str(uuid_lib.uuid4())[:8].upper()}"
+    cert_id = str(uuid_lib.uuid4())
+
+    # Parse date for PDF generation
+    parsed_date = date.today()
+    if isinstance(payload.issue_date, str):
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d"):
+            try:
+                parsed_date = datetime.strptime(payload.issue_date.strip(), fmt).date()
+                break
+            except ValueError:
+                pass
+    elif isinstance(payload.issue_date, date):
+        parsed_date = payload.issue_date
+    elif isinstance(payload.issue_date, datetime):
+        parsed_date = payload.issue_date.date()
+
+    # --- PDF + QR generation ---
+    output_path = f"generated_certificates/{cert_number}.pdf"
+    Path("generated_certificates").mkdir(parents=True, exist_ok=True)
+
+    certificate_obj = Certificate(
+        id=cert_id,
         certificate_number=cert_number,
         institution_id=institution_id,
-        issuer_id=issuer_id,
+        issuer_id=institution_id,
+        student_name=payload.student_name,
+        student_roll_no=payload.student_roll_no,
+        course_name=payload.course_name,
+        issue_date=parsed_date,
+        marks=payload.marks,
+        cgpa=payload.cgpa,
+        sha256_hash=cert_hash,
+        digital_signature=signature,
+        status="ISSUED",
+    )
+
+    pdf_path = generate_certificate_pdf(
+        certificate=certificate_obj,
+        certificate_number=cert_number,
+        output_path=output_path,
+        institution_name=institution_name,
+        verification_base_url="http://localhost:8000/verify",
+    )
+
+    # Standardize PDF URL path
+    pdf_url_clean = f"generated_certificates/{cert_number}.pdf"
+
+    new_cert = models.Certificate(
+        id=cert_id,
+        certificate_number=cert_number,
+        institution_id=str(institution_id),
+        issuer_id=str(institution_id),
         student_name=payload.student_name.strip(),
         student_roll_no=payload.student_roll_no.strip(),
         course_name=payload.course_name.strip(),
@@ -60,8 +134,8 @@ def issue_certificate(
         sha256_hash=cert_hash,
         digital_signature=signature,
         status="ISSUED",
-        qr_code_url=f"/verify?hash={cert_hash}",
-        pdf_url=f"/api/v1/certificates/download/{cert_number}",
+        qr_code_url=f"/verify?cert_id={cert_number}",
+        pdf_url=pdf_url_clean,
         created_at=datetime.utcnow()
     )
 
@@ -69,4 +143,18 @@ def issue_certificate(
     db.commit()
     db.refresh(new_cert)
 
-    return new_cert
+    return {
+        "id": new_cert.id,
+        "certificate_number": new_cert.certificate_number,
+        "student_name": new_cert.student_name,
+        "student_roll_no": new_cert.student_roll_no,
+        "course_name": new_cert.course_name,
+        "issue_date": new_cert.issue_date,
+        "marks": new_cert.marks,
+        "cgpa": new_cert.cgpa,
+        "sha256_hash": new_cert.sha256_hash,
+        "digital_signature": new_cert.digital_signature,
+        "status": new_cert.status,
+        "qr_code_url": new_cert.qr_code_url,
+        "pdf_url": pdf_url_clean
+    }

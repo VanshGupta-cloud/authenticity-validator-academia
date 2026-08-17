@@ -224,3 +224,4 @@ __marimo__/
 *_backup_*/
 Final UI/
 *.zip
+generated_certificates/

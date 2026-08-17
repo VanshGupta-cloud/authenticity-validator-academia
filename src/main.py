@@ -46,14 +46,20 @@ app.include_router(certificate_issue.router)
 app.include_router(certificates.router)
 
 # Directory paths
-static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
-frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+static_dir = os.path.join(root_dir, "static")
+frontend_dir = os.path.join(root_dir, "frontend")
+certs_dir = os.path.join(root_dir, "generated_certificates")
+os.makedirs(certs_dir, exist_ok=True)
+
 css_dir = os.path.join(frontend_dir, "css") if os.path.exists(os.path.join(frontend_dir, "css")) else os.path.join(static_dir, "css")
 js_dir = os.path.join(frontend_dir, "js") if os.path.exists(os.path.join(frontend_dir, "js")) else os.path.join(static_dir, "js")
 
 # Mount static endpoints
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.mount("/frontend", StaticFiles(directory=frontend_dir), name="frontend")
+app.mount("/generated_certificates", StaticFiles(directory=certs_dir), name="generated_certificates")
+
 if os.path.exists(css_dir):
     app.mount("/css", StaticFiles(directory=css_dir), name="css")
 if os.path.exists(js_dir):

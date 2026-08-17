@@ -21,12 +21,15 @@ def get_or_create_private_key(private_key_path="institution_private_key.pem"):
 
     for p in paths_to_check:
         if os.path.exists(p):
-            with open(p, "rb") as f:
-                _cached_private_key = serialization.load_pem_private_key(
-                    f.read(),
-                    password=None
-                )
-                return _cached_private_key
+            try:
+                with open(p, "rb") as f:
+                    _cached_private_key = serialization.load_pem_private_key(
+                        f.read(),
+                        password=None
+                    )
+                    return _cached_private_key
+            except Exception:
+                pass
 
     # Generate in-memory fallback key if file not found
     _cached_private_key = rsa.generate_private_key(
@@ -41,7 +44,9 @@ def build_canonical_payload(
     student_roll_no,
     degree_name,
     issue_date,
-    institution_id="GIT"
+    institution_id="GIT",
+    marks=None,
+    cgpa=None,
 ):
     payload = {
         "student_name": str(student_name).strip(),
@@ -50,6 +55,10 @@ def build_canonical_payload(
         "issue_date": str(issue_date).strip(),
         "institution_id": str(institution_id).strip(),
     }
+    if marks is not None:
+        payload["marks"] = str(marks).strip()
+    if cgpa is not None:
+        payload["cgpa"] = str(cgpa).strip()
 
     return json.dumps(
         payload,
@@ -60,6 +69,28 @@ def build_canonical_payload(
 
 def hash_certificate(payload_str: str) -> str:
     return hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
+
+
+def sign_hash_from_pem(hash_hex: str, private_key_pem: str) -> str:
+    if not private_key_pem:
+        return sign_hash(hash_hex)
+    try:
+        if isinstance(private_key_pem, str):
+            pem_bytes = private_key_pem.encode()
+        else:
+            pem_bytes = private_key_pem
+        private_key = serialization.load_pem_private_key(pem_bytes, password=None)
+        signature = private_key.sign(
+            hash_hex.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+        return base64.b64encode(signature).decode()
+    except Exception:
+        return sign_hash(hash_hex)
 
 
 def sign_hash(hash_hex: str, private_key_path: str = "institution_private_key.pem") -> str:
@@ -74,7 +105,7 @@ def sign_hash(hash_hex: str, private_key_path: str = "institution_private_key.pe
             hashes.SHA256(),
         )
         return base64.b64encode(signature).decode()
-    except Exception as e:
+    except Exception:
         # Fallback SHA signature
         raw_sig = hashlib.sha256((hash_hex + "_institutional_secret_sig").encode()).digest()
         return base64.b64encode(raw_sig).decode()

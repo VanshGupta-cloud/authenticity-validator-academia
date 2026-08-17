@@ -375,7 +375,22 @@ async function handleIssueCertificate() {
     document.getElementById('issued-cert-sig').textContent = newCert.digital_signature;
     document.getElementById('issued-cert-status').innerHTML = `<span class="status-pill valid">${newCert.status}</span>`;
 
-    showToast('Certificate cryptographically signed and issued!', 'success');
+    // Handle generated PDF and Download Certificate button
+    if (newCert.pdf_url) {
+      const pdfCleanUrl = '/' + newCert.pdf_url.replace(/^\/+/, '');
+      const pdfFrame = document.getElementById('issued-pdf-frame');
+      const downloadBtn = document.getElementById('download-cert-btn');
+
+      if (pdfFrame) {
+        pdfFrame.src = pdfCleanUrl;
+      }
+      if (downloadBtn) {
+        downloadBtn.href = pdfCleanUrl;
+        downloadBtn.download = `${newCert.certificate_number}.pdf`;
+      }
+    }
+
+    showToast('Certificate cryptographically signed and PDF generated!', 'success');
     navigateTo('page-8-issued');
   } catch (err) {
     showToast(`Issuance failed: ${err.message}`, 'error');
