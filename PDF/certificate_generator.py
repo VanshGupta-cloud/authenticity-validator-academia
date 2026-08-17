@@ -35,7 +35,13 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from qr.qr_generator import generate_qr_code
+try:
+    from qr.qr_generator import generate_qr_code
+except ImportError:
+    try:
+        from QR.qr_generator import generate_qr_code
+    except ImportError:
+        from qr_generator import generate_qr_code
 
 
 @dataclass
