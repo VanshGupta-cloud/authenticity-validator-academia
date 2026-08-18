@@ -349,6 +349,13 @@ def generate_certificate_pdf(
         # CERTIFICATE DETAILS
         # -----------------------------------------------------
 
+        if isinstance(certificate.issue_date, (datetime, date)):
+            formatted_date = certificate.issue_date.strftime(
+                "%d-%m-%Y"
+            )
+        else:
+            formatted_date = str(certificate.issue_date)
+
         details = [
             [
                 Paragraph(
@@ -362,11 +369,7 @@ def generate_certificate_pdf(
                     "<b>Issue Date</b>",
                     label_style,
                 ),
-                escape(
-                    certificate.issue_date.strftime(
-                        "%d-%m-%Y"
-                    )
-                ),
+                escape(formatted_date),
             ],
         ]
 
