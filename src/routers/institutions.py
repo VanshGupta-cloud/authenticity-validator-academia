@@ -89,13 +89,6 @@ def verify_otp(
         models.OtpVerification.email == target_email
     ).order_by(models.OtpVerification.created_at.desc()).first()
 
-    # Fallback to test code if no record found
-    if clean_code == "123456":
-        return {
-            "message": "OTP verified successfully (demo mode). Please set your institutional password.",
-            "official_email": target_email
-        }
-
     if not otp_record or otp_record.otp_code != clean_code:
         raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the 6-digit code sent to your email.")
 

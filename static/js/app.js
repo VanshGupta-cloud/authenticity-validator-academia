@@ -242,7 +242,12 @@ async function handleVerifyOtp() {
     return;
   }
 
-  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || 'registrar@nit.ac.in';
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim();
+  if (!email) {
+    showToast('Registration email not found. Please start registration first.', 'error');
+    navigateTo('page-3-register');
+    return;
+  }
 
   try {
     const res = await API.verifyOtp(email, code);
@@ -265,7 +270,12 @@ async function handleSetPassword() {
     return;
   }
 
-  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || 'registrar@nit.ac.in';
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim();
+  if (!email) {
+    showToast('Registration email not found. Please start registration first.', 'error');
+    navigateTo('page-3-register');
+    return;
+  }
 
   try {
     const res = await API.setPassword(email, pass, confirm);
