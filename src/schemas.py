@@ -196,7 +196,7 @@ class VerifyResponse(BaseModel):
     certificate: Optional[CertificateDetail] = None
     checks: VerificationChecks
     message: str
-
+ø
 
 class RevokeRequest(BaseModel):
     revocation_reason: str

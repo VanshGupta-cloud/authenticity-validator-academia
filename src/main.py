@@ -84,7 +84,7 @@ app.include_router(certificates.router)
 # ---------------------------------------------------------
 
 root_dir = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")
+    os.path.join(os.path.dirname(_file_), "..")
 )
 
 static_dir = os.path.join(root_dir, "static")

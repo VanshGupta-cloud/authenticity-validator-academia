@@ -22,12 +22,12 @@ def get_or_create_private_key(
     paths_to_check = [
         private_key_path,
         os.path.join(
-            os.path.dirname(__file__),
+            os.path.dirname(_file_),
             "..",
             private_key_path
         ),
         os.path.join(
-            os.path.dirname(__file__),
+            os.path.dirname(_file_),
             private_key_path
         ),
     ]

@@ -524,8 +524,8 @@ def generate_certificate_pdf(
         signature_table = Table(
             [
                 [
-                    "________________________",
-                    "________________________",
+                    "________",
+                    "________",
                 ],
                 [
                     "Authorized Signatory",

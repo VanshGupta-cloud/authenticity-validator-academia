@@ -217,3 +217,11 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 *.pem
+
+# Local Database and AI Agents
+*.db
+.agents/
+*_backup_*/
+Final UI/
+*.zip
+generated_certificates/
