@@ -1,10 +1,14 @@
 import os
+import sys
+import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger("uvicorn.error")
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 SMTP_HOST = os.getenv("SMTP_HOST")
@@ -18,7 +22,16 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
     """
     Sends an OTP verification email to the given recipient.
     Supports Resend API (default) or standard SMTP (Gmail, Brevo, SendGrid, etc.).
+    Always flushes OTP to server console immediately.
     """
+    # ALWAYS immediately print and flush the OTP to console with zero buffering
+    print(f"\n=======================================================", flush=True)
+    print(f" [REAL OTP GENERATED FOR: {to_email}]", flush=True)
+    print(f" >>> OTP CODE: {otp_code} <<<", flush=True)
+    print(f" Valid for: 10 minutes", flush=True)
+    print(f"=======================================================\n", flush=True)
+    sys.stdout.flush()
+
     subject = "Your AVFA Institution Verification Code"
     
     html_content = f"""
@@ -68,10 +81,10 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
                 "subject": subject,
                 "html": html_content
             })
-            print(f"[EMAIL SERVICE] [SUCCESS] Sent real OTP {otp_code} to {to_email} via Resend API.")
+            print(f"[EMAIL SERVICE] [SUCCESS] Delivered OTP to {to_email} via Resend API.", flush=True)
             return True, "Email sent successfully via Resend."
         except Exception as e:
-            print(f"[EMAIL SERVICE] [ERROR] Resend error: {e}")
+            print(f"[EMAIL SERVICE] [ERROR] Resend delivery failed: {e}", flush=True)
 
     # 2. Try SMTP if configured (Gmail, Brevo, custom SMTP)
     if SMTP_HOST and SMTP_USER and SMTP_PASSWORD:
@@ -87,16 +100,9 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
                 server.starttls()
                 server.login(SMTP_USER, SMTP_PASSWORD)
                 server.sendmail(SMTP_USER, to_email, msg.as_string())
-            print(f"[EMAIL SERVICE] [SUCCESS] Sent real OTP {otp_code} to {to_email} via SMTP ({SMTP_HOST}).")
+            print(f"[EMAIL SERVICE] [SUCCESS] Delivered OTP to {to_email} via SMTP ({SMTP_HOST}).", flush=True)
             return True, "Email sent successfully via SMTP."
         except Exception as e:
-            print(f"[EMAIL SERVICE] [ERROR] SMTP error: {e}")
+            print(f"[EMAIL SERVICE] [ERROR] SMTP delivery failed: {e}", flush=True)
 
-    # 3. Log to terminal if no external API key provided
-    print(f"\n=======================================================")
-    print(f"[REAL OTP GENERATED FOR {to_email}]")
-    print(f"OTP CODE: >>> {otp_code} <<<")
-    print(f"Expires in: 10 minutes")
-    print(f"Set RESEND_API_KEY or SMTP credentials in .env to deliver directly to inbox.")
-    print(f"=======================================================\n")
-    return False, "No external email API key configured in .env. OTP printed to server log."
+    return False, "OTP printed to terminal console."

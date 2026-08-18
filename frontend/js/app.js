@@ -207,6 +207,10 @@ async function handleInstitutionRegister() {
     const res = await API.registerInstitution(name, email, address);
     state.pendingEmail = email;
 
+    if (res.otp_debug) {
+      console.log(`%c[AVFA Real OTP]%c Verification Code: ${res.otp_debug}`, 'background: #243B53; color: #FFF; padding: 4px 8px; border-radius: 4px; font-weight: bold;', 'color: #C65D3B; font-weight: bold; font-size: 16px; margin-left: 8px;');
+    }
+
     const emailEl = document.getElementById('otp-target-email');
     if (emailEl) emailEl.textContent = email;
 

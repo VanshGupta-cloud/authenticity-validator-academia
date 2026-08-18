@@ -1,5 +1,7 @@
 import uuid
+import sys
 import secrets
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, status
@@ -9,6 +11,8 @@ from src.database import get_db
 from src import models
 from src.security import hash_password, verify_password, create_access_token
 from src.email_service import send_otp_email
+
+logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(
     prefix="/institutions",
@@ -67,13 +71,24 @@ def register_institution(
     db.add(otp_record)
     db.commit()
 
-    # Dispatch real email via Resend / SMTP / Console
+    # Prominently print and flush OTP to server console immediately
+    print(f"\n=======================================================", flush=True)
+    print(f" [INSTITUTION REGISTRATION]", flush=True)
+    print(f" Institution: {payload.name.strip()}", flush=True)
+    print(f" Target Email: {target_email}", flush=True)
+    print(f" REAL OTP CODE: >>> {otp_code} <<<", flush=True)
+    print(f" Expires: 10 minutes", flush=True)
+    print(f"=======================================================\n", flush=True)
+    sys.stdout.flush()
+
+    # Dispatch real email via Resend / SMTP
     sent, msg = send_otp_email(target_email, otp_code)
 
     return {
-        "message": f"Verification code sent to {target_email}. Please check your inbox.",
+        "message": f"Verification code sent to {target_email}. Please check your inbox or terminal.",
         "official_email": target_email,
-        "email_delivered": sent
+        "email_delivered": sent,
+        "otp_debug": otp_code
     }
 
 
@@ -90,7 +105,7 @@ def verify_otp(
     ).order_by(models.OtpVerification.created_at.desc()).first()
 
     if not otp_record or otp_record.otp_code != clean_code:
-        raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the 6-digit code sent to your email.")
+        raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the 6-digit code sent to your email or terminal.")
 
     if datetime.utcnow() > otp_record.expires_at:
         raise HTTPException(status_code=400, detail="OTP code has expired. Please register again to receive a new code.")
@@ -159,21 +174,6 @@ def login_institution(
         raise HTTPException(status_code=422, detail="Official email is required.")
 
     inst = db.query(models.Institution).filter(models.Institution.email == target_email).first()
-
-    # Pre-seeded credentials fallback for demo
-    if not inst and target_email == "issuer@git.edu" and payload.password == "issuer123":
-        inst = models.Institution(
-            id=str(uuid.uuid4()),
-            name="Global Institute of Technology",
-            code="GIT",
-            email="issuer@git.edu",
-            password_hash=hash_password("issuer123"),
-            is_verified=True,
-            created_at=datetime.utcnow()
-        )
-        db.add(inst)
-        db.commit()
-        db.refresh(inst)
 
     if not inst or not inst.password_hash:
         raise HTTPException(status_code=401, detail="Invalid institutional credentials.")
