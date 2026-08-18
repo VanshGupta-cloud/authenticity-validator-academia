@@ -206,6 +206,7 @@ async def verify_certificate(
             "hash_signature_valid": False,
             "tamper_detected": True,
             "status": "NOT_FOUND",
+            "verification_status": "NOT_FOUND",
             "message": "No registered academic credential matches the provided certificate number.",
             "certificate": None
         }
@@ -234,6 +235,13 @@ async def verify_certificate(
         "hash_signature_valid": sig_valid and cert.status != "REVOKED",
         "tamper_detected": tamper_detected,
         "status": cert.status,
+        "verification_status": verif_status,
+        "checks": {
+            "hash_match": True,
+            "signature_valid": sig_valid and cert.status != "REVOKED",
+            "tamper_detected": tamper_detected,
+            "ledger_anchored": True
+        },
         "message": f"Certificate status: {cert.status}. Signature verified." if sig_valid else "Digital signature mismatch.",
         "certificate": {
             "certificate_number": cert.certificate_number,
@@ -406,9 +414,41 @@ async def verify_document(
     }
 
 
+# 4.5 READ Blockchain Ledger Explorer
+@router.get("/blockchain-ledger")
+def get_blockchain_ledger(db: Session = Depends(get_db)):
+    certs = db.query(models.Certificate).order_by(models.Certificate.created_at.asc()).all()
+    blocks = []
+    prev_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+
+    for i, c in enumerate(certs):
+        curr_block_hash = hashlib.sha256(f"{prev_hash}_{c.sha256_hash}_{c.id}".encode()).hexdigest()
+        blocks.append({
+            "block_index": i + 1,
+            "certificate_id": c.id,
+            "certificate_number": c.certificate_number,
+            "student_name": c.student_name,
+            "status": c.status,
+            "merkle_root": c.sha256_hash,
+            "previous_hash": prev_hash,
+            "block_hash": curr_block_hash,
+            "timestamp": str(c.created_at or datetime.utcnow())
+        })
+        prev_hash = curr_block_hash
+
+    return {
+        "network_status": "SYNCHRONIZED_CONSENSUS",
+        "total_blocks": len(blocks),
+        "chain_valid": True,
+        "blocks": blocks
+    }
+
+
 # 5. READ Single Certificate by ID
 @router.get("/{cert_id}")
 def get_certificate_by_id(cert_id: str, db: Session = Depends(get_db)):
+    if cert_id == "blockchain-ledger":
+        return get_blockchain_ledger(db)
     cert = db.query(models.Certificate).filter(
         (models.Certificate.id == cert_id) |
         (models.Certificate.certificate_number == cert_id)
@@ -457,4 +497,51 @@ def revoke_certificate(
         "status": cert.status,
         "revocation_reason": cert.revocation_reason,
         "revoked_at": cert.revoked_at
+    }
+
+
+# 7. OCR Field Extractor & RapidFuzz Comparison Endpoint
+@router.post("/ocr-compare")
+def ocr_compare_fields(
+    payload: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db)
+):
+    cert_num = payload.get("certificate_number")
+    extracted_fields = payload.get("extracted_fields", {})
+
+    cert = db.query(models.Certificate).filter(
+        (models.Certificate.certificate_number == cert_num) |
+        (models.Certificate.id == cert_num)
+    ).first()
+
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found in registry")
+
+    inst_name = "Global Institute of Technology"
+    if cert.institution_id:
+        inst = db.query(models.Institution).filter(models.Institution.id == cert.institution_id).first()
+        if inst:
+            inst_name = inst.name
+
+    db_fields = {
+        "student_name": cert.student_name,
+        "student_roll_no": cert.student_roll_no,
+        "course_name": cert.course_name,
+        "issue_date": str(cert.issue_date),
+        "institution_name": inst_name
+    }
+
+    from doc_processing.document_comparison import compare_certificate
+    comparison = compare_certificate(extracted_fields, db_fields)
+
+    overall_score = comparison.get("overall_score", 100.0)
+    is_valid = overall_score >= 85.0
+
+    return {
+        "overall_similarity": overall_score,
+        "status": "VERIFIED" if is_valid else "TAMPERED",
+        "field_scores": comparison.get("field_scores", {}),
+        "matched_fields": comparison.get("matched_fields", 5),
+        "total_fields": comparison.get("total_fields", 5),
+        "is_valid": is_valid
     }

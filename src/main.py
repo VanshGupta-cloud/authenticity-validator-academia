@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.database import get_db, engine, Base
-from src.routers import auth, institutions, certificate_issue, certificates
+from src.routers import auth, institutions, certificate_issue, certificates, certificate_verify
 from src.init_demo_data import init_db
 
 # Create tables
@@ -44,6 +44,7 @@ app.include_router(auth.router)
 app.include_router(institutions.router)
 app.include_router(certificate_issue.router)
 app.include_router(certificates.router)
+app.include_router(certificate_verify.router)
 
 # Directory paths
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

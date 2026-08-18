@@ -158,3 +158,29 @@ def issue_certificate(
         "qr_code_url": new_cert.qr_code_url,
         "pdf_url": pdf_url_clean
     }
+
+
+@router.post("/batch-issue")
+def batch_issue_certificates(
+    records: list[dict],
+    db: Session = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+):
+    issued = []
+    for r in records:
+        req = schemas.CertificateIssueRequest(
+            student_name=r.get("student_name", "Student"),
+            student_roll_no=r.get("student_roll_no", "CS-2026-000"),
+            course_name=r.get("course_name", "Bachelor of Technology"),
+            issue_date=r.get("issue_date", str(date.today())),
+            marks=r.get("marks"),
+            cgpa=r.get("cgpa")
+        )
+        res = issue_certificate(req, db, credentials)
+        issued.append(res)
+        
+    return {
+        "total_records": len(issued),
+        "certificates": issued,
+        "message": f"Successfully issued {len(issued)} certificates in batch."
+    }

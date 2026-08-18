@@ -143,3 +143,28 @@ class RevokeResponse(BaseModel):
     status: str
     revocation_reason: str
     revoked_at: datetime
+
+# Verification Contract Schemas (feat/hriddhima-auth and UI contract)
+class CertificateVerifyRequest(BaseModel):
+    certificate_id: Optional[str] = None
+    certificate_number: Optional[str] = None
+    sha256_hash: Optional[str] = None
+    queried_hash: Optional[str] = None
+
+class CertificateVerifyResponse(BaseModel):
+    hash_signature_valid: bool
+    tamper_detected: bool
+    certificate_number: Optional[str] = None
+    student_name: Optional[str] = None
+    student_roll_no: Optional[str] = None
+    course_name: Optional[str] = None
+    issue_date: Optional[Any] = None
+    marks: Optional[str] = None
+    cgpa: Optional[str] = None
+    status: Optional[str] = None
+    verification_status: Optional[str] = None
+    message: Optional[str] = None
+    found: Optional[bool] = True
+    overall_similarity: Optional[float] = None
+    field_mismatches: Optional[List[Dict[str, Any]]] = None
+    certificate: Optional[Dict[str, Any]] = None
