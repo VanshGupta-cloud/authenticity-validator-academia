@@ -1,6 +1,5 @@
 import os
 import sys
-import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -8,23 +7,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logger = logging.getLogger("uvicorn.error")
-
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-FROM_EMAIL = os.getenv("FROM_EMAIL", "onboarding@resend.dev")
+FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_USER or "onboarding@resend.dev")
 
 
 def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
     """
     Sends an OTP verification email to the given recipient.
-    Supports Resend API (default) or standard SMTP (Gmail, Brevo, SendGrid, etc.).
+    Supports Resend API or direct Gmail / SMTP with SSL / STARTTLS.
     Always flushes OTP to server console immediately.
     """
-    # ALWAYS immediately print and flush the OTP to console with zero buffering
+    # 1. ALWAYS print and flush the OTP to console immediately
     print(f"\n=======================================================", flush=True)
     print(f" [REAL OTP GENERATED FOR: {to_email}]", flush=True)
     print(f" >>> OTP CODE: {otp_code} <<<", flush=True)
@@ -32,7 +29,7 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
     print(f"=======================================================\n", flush=True)
     sys.stdout.flush()
 
-    subject = "Your AVFA Institution Verification Code"
+    subject = "🎓 Your AVFA Institution Verification Code"
     
     html_content = f"""
     <!DOCTYPE html>
@@ -54,23 +51,48 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
       <div class="email-container">
         <div class="header">
           <h1>AVFA ACADEMIA</h1>
-          <p>SIH25029 - Tamper-Proof Credential System</p>
+          <p>SIH25029 • Tamper-Proof Credential System</p>
         </div>
         <div class="content">
           <h2 style="color: #243B53; margin-top: 0;">Institutional Email Verification</h2>
           <p style="color: #706B65; font-size: 15px;">Please use the following 6-digit One-Time Password (OTP) to complete your institutional onboarding:</p>
           <div class="otp-box">{otp_code}</div>
-          <p style="color: #706B65; font-size: 13px; margin-top: 10px;">This verification code is confidential and expires in <strong>10 minutes</strong>.</p>
+          <p style="color: #706B65; font-size: 13px; margin-top: 10px;">⚠️ This verification code is confidential and expires in <strong>10 minutes</strong>.</p>
         </div>
         <div class="footer">
-          (C) 2026 Authenticity Validator for Academia (SIH25029).
+          © 2026 Authenticity Validator for Academia (Govt of Jharkhand SIH25029).
         </div>
       </div>
     </body>
     </html>
     """
 
-    # 1. Try Resend API if key configured
+    # Method A: Gmail / SMTP (if configured in .env)
+    if SMTP_HOST and SMTP_USER and SMTP_PASSWORD:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"AVFA Academia <{SMTP_USER}>"
+            msg["To"] = to_email
+            msg.attach(MIMEText(f"Your AVFA Verification Code is: {otp_code} (Valid for 10 mins)", "plain"))
+            msg.attach(MIMEText(html_content, "html"))
+
+            if SMTP_PORT == 465:
+                with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                    server.login(SMTP_USER, SMTP_PASSWORD)
+                    server.sendmail(SMTP_USER, to_email, msg.as_string())
+            else:
+                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                    server.starttls()
+                    server.login(SMTP_USER, SMTP_PASSWORD)
+                    server.sendmail(SMTP_USER, to_email, msg.as_string())
+
+            print(f"[EMAIL SERVICE] [SUCCESS] Real OTP email delivered to {to_email} via SMTP ({SMTP_HOST}).", flush=True)
+            return True, f"Email delivered to {to_email} via SMTP."
+        except Exception as e:
+            print(f"[EMAIL SERVICE] [ERROR] SMTP delivery failed: {e}", flush=True)
+
+    # Method B: Resend API (if configured in .env)
     if RESEND_API_KEY:
         try:
             import resend
@@ -81,28 +103,9 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
                 "subject": subject,
                 "html": html_content
             })
-            print(f"[EMAIL SERVICE] [SUCCESS] Delivered OTP to {to_email} via Resend API.", flush=True)
-            return True, "Email sent successfully via Resend."
+            print(f"[EMAIL SERVICE] [SUCCESS] Real OTP delivered to {to_email} via Resend API.", flush=True)
+            return True, f"Email delivered to {to_email} via Resend."
         except Exception as e:
             print(f"[EMAIL SERVICE] [ERROR] Resend delivery failed: {e}", flush=True)
-
-    # 2. Try SMTP if configured (Gmail, Brevo, custom SMTP)
-    if SMTP_HOST and SMTP_USER and SMTP_PASSWORD:
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = SMTP_USER
-            msg["To"] = to_email
-            msg.attach(MIMEText(f"Your AVFA Verification Code is: {otp_code} (Valid for 10 mins)", "plain"))
-            msg.attach(MIMEText(html_content, "html"))
-
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(SMTP_USER, to_email, msg.as_string())
-            print(f"[EMAIL SERVICE] [SUCCESS] Delivered OTP to {to_email} via SMTP ({SMTP_HOST}).", flush=True)
-            return True, "Email sent successfully via SMTP."
-        except Exception as e:
-            print(f"[EMAIL SERVICE] [ERROR] SMTP delivery failed: {e}", flush=True)
 
     return False, "OTP printed to terminal console."
