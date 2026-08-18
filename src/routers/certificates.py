@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFi
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import pymupdf
 from pypdf import PdfReader
 from src.database import get_db
 from src import models, schemas
@@ -22,7 +23,7 @@ router = APIRouter(
 def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
     """
     Extracts structured academic certificate fields and identifiers from uploaded PDF bytes.
-    Supports both ReportLab columnar tables and standard labeled layout certificates.
+    Uses PyMuPDF for layout and character accuracy, with pypdf fallback.
     """
     extracted = {
         "certificate_number": None,
@@ -36,9 +37,16 @@ def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
     }
 
     try:
-        reader = PdfReader(io.BytesIO(content))
-        full_text = "\n".join([p.extract_text() or "" for p in reader.pages])
+        full_text = ""
+        try:
+            doc = pymupdf.open(stream=content, filetype="pdf")
+            full_text = "\n".join([page.get_text() for page in doc])
+        except Exception:
+            reader = PdfReader(io.BytesIO(content))
+            full_text = "\n".join([p.extract_text() or "" for p in reader.pages])
+
         extracted["full_text"] = full_text
+        lines = [l.strip() for l in full_text.split("\n") if l.strip()]
 
         # 1. Certificate Number (e.g. CERT-2026-BFB6E7E4 or AVFA-GIT-2024-001)
         m_cert = re.search(r'\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b', full_text, re.IGNORECASE)
@@ -51,30 +59,31 @@ def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
             extracted["student_roll_no"] = m_roll.group(1).strip()
 
         # 3. Student Name
-        # Pattern A: Name line immediately preceding "Roll Number"
-        m_name_above_roll = re.search(r'\n\s*([A-Za-z\s\.\-]{2,40})\s*\n\s*Roll Number', full_text, re.IGNORECASE)
-        if m_name_above_roll and 'CERTIFICATE' not in m_name_above_roll.group(1).upper() and 'ACHIEVEMENT' not in m_name_above_roll.group(1).upper() and m_name_above_roll.group(1).strip().upper() != 'NAME':
-            name_cand = m_name_above_roll.group(1).strip()
-            name_cand = re.sub(r'(?i)This is to certify that', '', name_cand).strip()
-            if name_cand:
-                extracted["student_name"] = name_cand
-        
+        for i, line in enumerate(lines):
+            if "Roll Number" in line and i > 0:
+                prev = lines[i - 1]
+                if "CERTIFICATE" not in prev.upper() and "ACHIEVEMENT" not in prev.upper() and prev.upper() != "NAME":
+                    extracted["student_name"] = prev
+                    break
         if not extracted["student_name"]:
-            # Pattern B: Name line immediately following "This is to certify that"
-            m_name = re.search(r'This is to certify that\s*\n\s*([A-Za-z\s\.\-]{2,40})', full_text, re.IGNORECASE)
-            if m_name and 'CERTIFICATE' not in m_name.group(1).upper():
-                name_cand = m_name.group(1).strip()
-                name_cand = re.sub(r'(?i)This is to certify that', '', name_cand).strip()
-                if name_cand:
-                    extracted["student_name"] = name_cand
+            for i, line in enumerate(lines):
+                if "This is to certify that" in line and i + 1 < len(lines):
+                    next_l = lines[i + 1]
+                    if "CERTIFICATE" not in next_l.upper() and "ACHIEVEMENT" not in next_l.upper():
+                        extracted["student_name"] = next_l
+                        break
 
         # 4. Course / Degree Name
-        m_course = re.search(r'completed the course\s*\n\s*([^\n\r]+)', full_text, re.IGNORECASE)
-        if m_course:
-            extracted["course_name"] = m_course.group(1).strip()
+        for i, line in enumerate(lines):
+            if "completed the course" in line and i + 1 < len(lines):
+                extracted["course_name"] = lines[i + 1]
+                break
+        if not extracted["course_name"]:
+            m_course = re.search(r'completed the course\s*\n\s*([^\n\r]+)', full_text, re.IGNORECASE)
+            if m_course:
+                extracted["course_name"] = m_course.group(1).strip()
 
-        # 5. Columnar Table Block Parsing (ReportLab table structure):
-        # Format: CERT-XXXX \n DD-MM-YYYY \n MARKS \n CGPA
+        # 5. Table values (Columnar block or inline)
         table_m = re.search(
             r'\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b\s*\n\s*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\s*\n\s*(\d+)\s*\n\s*([\d\.]+)',
             full_text,
@@ -86,7 +95,6 @@ def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
             extracted["marks"] = table_m.group(3).strip()
             extracted["cgpa"] = table_m.group(4).strip()
         else:
-            # Fallback to inline labels
             m_date = re.search(r'(?:Issue Date|Date)[:\s]+([\d\-/]+)', full_text, re.IGNORECASE)
             if m_date:
                 extracted["issue_date"] = m_date.group(1).strip()
@@ -121,7 +129,7 @@ def get_certificate_stats(db: Session = Depends(get_db)):
     }
 
 
-# 2. READ All Certificates (with optional search and status filters)
+# 2. READ All Certificates
 @router.get("/", response_model=List[schemas.CertificateResponse])
 def get_all_certificates(
     search: Optional[str] = None,
@@ -296,7 +304,7 @@ async def verify_document(
             models.Certificate.student_roll_no.ilike(extracted_roll_no)
         ).first()
 
-    # Step 4: If no matching certificate exists in database, return NOT_FOUND (NEVER fallback to random cert)
+    # Step 4: If no matching certificate exists in database, return NOT_FOUND
     if not cert:
         log_verification(
             db=db,
@@ -312,6 +320,7 @@ async def verify_document(
             "status": "NOT_FOUND",
             "message": "Uploaded document does not match any registered academic record in the institutional registry.",
             "mismatches": [],
+            "field_mismatches": [],
             "record": None
         }
 
@@ -342,7 +351,7 @@ async def verify_document(
 
     # Marks Check
     if extracted.get("marks") and getattr(cert, "marks", None):
-        doc_marks = extracted["marks"].strip()
+        doc_marks = str(extracted["marks"]).strip()
         rec_marks = str(cert.marks).strip()
         if doc_marks != rec_marks:
             mismatches.append({
@@ -370,16 +379,7 @@ async def verify_document(
                     "record_value": str(cert.cgpa).strip()
                 })
 
-    # Check simulated test filename if tested
-    if "modified" in file.filename.lower() or "tamper" in file.filename.lower():
-        if not mismatches:
-            mismatches.append({
-                "field": "Total Marks",
-                "document_value": "495",
-                "record_value": getattr(cert, "marks", "485") or "485"
-            })
-
-    # Determine authenticity
+    # Determine authenticity based on field fidelity and certificate status
     is_tampered = (len(mismatches) > 0)
     doc_matches = (not is_tampered) and (cert.status == "ISSUED")
 
@@ -400,6 +400,7 @@ async def verify_document(
         "file_name": file.filename,
         "computed_hash": file_hash,
         "mismatches": mismatches,
+        "field_mismatches": mismatches,
         "record": {
             "certificate_number": cert.certificate_number,
             "student_name": cert.student_name,
