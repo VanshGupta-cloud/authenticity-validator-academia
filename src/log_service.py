@@ -13,14 +13,11 @@ def log_verification(
     request=None,
 ) -> VerificationLog:
     if verification_status not in VALID_STATUSES:
-        raise ValueError(
-            f"Invalid verification_status '{verification_status}'. "
-            f"Must be one of {sorted(VALID_STATUSES)}"
-        )
+        verification_status = "TAMPERED"
 
     log_entry = VerificationLog(
         certificate_id=certificate_id,
-        queried_hash=queried_hash,
+        queried_hash=queried_hash or "UNKNOWN",
         verification_status=verification_status,
         verified_by_ip=request.client.host if request and request.client else None,
         user_agent=request.headers.get("user-agent") if request else None,

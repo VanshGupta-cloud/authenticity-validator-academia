@@ -23,7 +23,12 @@ Course handling:
     FastAPI/comparison contract uses course_name
 """
 
-from rapidfuzz.fuzz import ratio
+try:
+    from rapidfuzz.fuzz import ratio
+except ImportError:
+    import difflib
+    def ratio(s1, s2):
+        return difflib.SequenceMatcher(None, str(s1).lower(), str(s2).lower()).ratio() * 100
 
 
 # --------------------------------------------------
@@ -150,8 +155,11 @@ def compare_certificate(
 
     for field in COMPARISON_FIELDS:
 
-        extracted_value = extracted_certificate.get(
-            field
+        extracted_value = (
+            extracted_certificate.get(field)
+            or (extracted_certificate.get("degree_name") if field == "course_name" else None)
+            or (extracted_certificate.get("institution") if field == "institution_name" else None)
+            or (extracted_certificate.get("degree") if field == "course_name" else None)
         )
 
         stored_value = stored_certificate.get(

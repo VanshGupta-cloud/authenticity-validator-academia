@@ -12,8 +12,8 @@ from src.routers import (
     auth,
     institutions,
     certificate_issue,
-    certificate_verify,
     certificates,
+    certificate_verify,
 )
 from src.init_demo_data import init_db
 
@@ -67,7 +67,6 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(institutions.router, prefix="/api/v1")
 app.include_router(certificate_issue.router, prefix="/api/v1")
-app.include_router(certificate_verify.router, prefix="/api/v1")
 app.include_router(certificates.router, prefix="/api/v1")
 
 
@@ -75,7 +74,6 @@ app.include_router(certificates.router, prefix="/api/v1")
 app.include_router(auth.router)
 app.include_router(institutions.router)
 app.include_router(certificate_issue.router)
-app.include_router(certificate_verify.router)
 app.include_router(certificates.router)
 
 
@@ -84,7 +82,7 @@ app.include_router(certificates.router)
 # ---------------------------------------------------------
 
 root_dir = os.path.abspath(
-    os.path.join(os.path.dirname(_file_), "..")
+    os.path.join(os.path.dirname(__file__), "..")
 )
 
 static_dir = os.path.join(root_dir, "static")
@@ -167,8 +165,14 @@ def serve_index():
         )
 
     if os.path.exists(index_path):
-        return FileResponse(index_path)
-
+        return FileResponse(
+            index_path,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     return {
         "status": "AVFA API is running",
         "docs": "/docs"
