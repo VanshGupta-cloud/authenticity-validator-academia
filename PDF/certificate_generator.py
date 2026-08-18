@@ -35,13 +35,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-try:
-    from qr.qr_generator import generate_qr_code
-except ImportError:
-    try:
-        from QR.qr_generator import generate_qr_code
-    except ImportError:
-        from qr_generator import generate_qr_code
+from qr.qr_generator import generate_qr_code
 
 
 @dataclass
@@ -356,7 +350,9 @@ def generate_certificate_pdf(
         # -----------------------------------------------------
 
         if isinstance(certificate.issue_date, (datetime, date)):
-            formatted_date = certificate.issue_date.strftime("%d-%m-%Y")
+            formatted_date = certificate.issue_date.strftime(
+                "%d-%m-%Y"
+            )
         else:
             formatted_date = str(certificate.issue_date)
 
@@ -528,8 +524,8 @@ def generate_certificate_pdf(
         signature_table = Table(
             [
                 [
-                    "________________________",
-                    "________________________",
+                    "________",
+                    "________",
                 ],
                 [
                     "Authorized Signatory",

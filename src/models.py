@@ -1,70 +1,93 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, ForeignKey, DateTime, Boolean, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Numeric,
+    String,
+    Text,
+    TIMESTAMP,
+    DateTime,
+    text,
+)
+from sqlalchemy.dialects.postgresql import UUID
+
 from src.database import Base
+
 
 def generate_uuid():
     return str(uuid.uuid4())
 
+
 class Institution(Base):
     __tablename__ = "institutions"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     name = Column(String(255), nullable=False)
-    code = Column(String(50), nullable=False, default="GIT")
-    email = Column(String(100), nullable=False, unique=True)
+    code = Column(String(50), nullable=False, unique=True)
+    email = Column(String(100), nullable=True)
+    official_email = Column(String(255), nullable=False, unique=True)
     password_hash = Column(String(255), nullable=True)
     public_key = Column(Text, nullable=True)
-    is_verified = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    private_key = Column(Text, nullable=True)
+    otp_code = Column(String(6), nullable=True)
+    otp_expires_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    is_email_verified = Column(Boolean, nullable=False, server_default=text("false"))
+    is_verified = Column(Boolean, nullable=False, server_default=text("false"))
+    created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    institution_id = Column(String(36), ForeignKey("institutions.id"), nullable=True)
-    full_name = Column(String(255), nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False, default="STUDENT")  # ADMIN, ISSUER, VERIFIER, STUDENT
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    institution_id = Column(UUID(as_uuid=True), ForeignKey("institutions.id"), nullable=True)
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, server_default=text("'ISSUER'"))
+    created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
 
 class Certificate(Base):
     __tablename__ = "certificates"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    certificate_number = Column(String(100), unique=True, nullable=False)
-    student_name = Column(String(255), nullable=False)
-    student_roll_no = Column(String(100), nullable=False)
-    course_name = Column(String(255), nullable=False)
-    issue_date = Column(String(50), nullable=False)
-    marks = Column(String(50), nullable=True)
-    cgpa = Column(String(50), nullable=True)
-    sha256_hash = Column(String(64), nullable=False, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    certificate_number = Column(String, unique=True, nullable=False)
+    institution_id = Column(UUID(as_uuid=True), ForeignKey("institutions.id"), nullable=False)
+    issuer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    batch_id = Column(UUID(as_uuid=True), nullable=True)
+
+    student_name = Column(String, nullable=False)
+    student_roll_no = Column(String, nullable=False)
+    course_name = Column(String, nullable=False)
+    issue_date = Column(String, nullable=False)
+
+    marks = Column(Numeric(10, 2), nullable=True)
+    cgpa = Column(Numeric(4, 2), nullable=True)
+
+    sha256_hash = Column(String(64), unique=True, nullable=False)
     digital_signature = Column(Text, nullable=False)
-    institution_id = Column(String(36), ForeignKey("institutions.id"), nullable=True)
-    issuer_id = Column(String(36), ForeignKey("users.id"), nullable=True)
-    batch_id = Column(String(36), nullable=True)
     qr_code_url = Column(Text, nullable=True)
     pdf_url = Column(Text, nullable=True)
-    status = Column(String(20), default="ISSUED")  # ISSUED, REVOKED
-    revocation_reason = Column(String(255), nullable=True)
-    revoked_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+
+    status = Column(String(20), nullable=False, server_default=text("'ISSUED'"))
+    revocation_reason = Column(Text, nullable=True)
+    revoked_at = Column(TIMESTAMP, nullable=True)
+    created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
 
 class VerificationLog(Base):
     __tablename__ = "verification_logs"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    certificate_id = Column(String(36), ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    certificate_id = Column(UUID(as_uuid=True), ForeignKey("certificates.id", ondelete="SET NULL"), nullable=True)
     queried_hash = Column(String(64), nullable=False)
-    verification_status = Column(String(20), nullable=False)  # VALID, TAMPERED, REVOKED, NOT_FOUND
+    verification_status = Column(String(20), nullable=False)
     verified_by_ip = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"))
 
 
 class OtpVerification(Base):
