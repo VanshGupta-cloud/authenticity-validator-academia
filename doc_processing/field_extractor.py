@@ -771,30 +771,35 @@ MARKS_LABELS = [
 
 def extract_marks(text):
     """
-    Extract marks when explicitly labelled.
-
-    Examples:
-
-        Marks: 450
-        Total Marks: 500
-        Marks Obtained: 450
+    Extract numeric marks from certificate text or ReportLab table blocks.
     """
+    # 1. Check columnar table block: CERT-XXXX \n DATE \n MARKS \n CGPA
+    table_m = re.search(
+        r'\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b\s*\n\s*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\s*\n\s*(\d+)\s*\n\s*([\d\.]+)',
+        text,
+        re.IGNORECASE
+    )
+    if table_m:
+        return table_m.group(3).strip()
+
+    # 2. Check inline label: Marks: 1025 or Marks 1025
+    m = re.search(r'(?:Total Marks|Marks Obtained|Marks|Score)[:\s]+(\d+)', text, re.IGNORECASE)
+    if m:
+        return m.group(1).strip()
 
     value = extract_labeled_field(
         text,
         MARKS_LABELS,
     )
-
-    if value:
-        return value
+    if value and re.match(r'^\d+$', str(value).strip()):
+        return str(value).strip()
 
     value = extract_value_after_label(
         text,
         MARKS_LABELS,
     )
-
-    if value:
-        return value
+    if value and re.match(r'^\d+$', str(value).strip()):
+        return str(value).strip()
 
     return None
 
@@ -813,29 +818,35 @@ CGPA_LABELS = [
 
 def extract_cgpa(text):
     """
-    Extract CGPA/GPA when explicitly labelled.
-
-    Examples:
-
-        CGPA: 8.5
-        GPA: 8.5
+    Extract numeric CGPA/GPA from certificate text or ReportLab table blocks.
     """
+    # 1. Check columnar table block: CERT-XXXX \n DATE \n MARKS \n CGPA
+    table_m = re.search(
+        r'\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b\s*\n\s*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\s*\n\s*(\d+)\s*\n\s*([\d\.]+)',
+        text,
+        re.IGNORECASE
+    )
+    if table_m:
+        return table_m.group(4).strip()
+
+    # 2. Check inline label: CGPA: 5 or CGPA 5
+    m = re.search(r'(?:CGPA|C\.G\.P\.A|GPA|G\.P\.A)[:\s]+([\d\.]+)', text, re.IGNORECASE)
+    if m:
+        return m.group(1).strip()
 
     value = extract_labeled_field(
         text,
         CGPA_LABELS,
     )
-
-    if value:
-        return value
+    if value and re.match(r'^\d+(\.\d+)?$', str(value).strip()):
+        return str(value).strip()
 
     value = extract_value_after_label(
         text,
         CGPA_LABELS,
     )
-
-    if value:
-        return value
+    if value and re.match(r'^\d+(\.\d+)?$', str(value).strip()):
+        return str(value).strip()
 
     return None
 

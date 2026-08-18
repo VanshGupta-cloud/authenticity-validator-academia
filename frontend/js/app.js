@@ -693,9 +693,9 @@ function renderVerificationResultTabB(res) {
   const container = document.getElementById('result-container');
   if (!container) return;
 
-  const found = res.found;
-  const docMatches = res.document_matches_record;
-  const mismatches = res.mismatches || [];
+  const found = res.found !== false && res.status !== 'NOT_FOUND';
+  const mismatches = res.mismatches || res.field_mismatches || [];
+  const docMatches = Boolean(res.document_matches_record) && (res.status === 'ISSUED' || res.status === 'VALID') && mismatches.length === 0;
   const record = res.record;
 
   let indicatorHtml = '';
