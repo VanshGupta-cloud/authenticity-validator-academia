@@ -77,6 +77,27 @@ def register_institution(
             detail="A valid official email is required."
         )
 
+    # Check if institution or user is already registered in database
+    existing_inst = db.query(models.Institution).filter(
+        models.Institution.email.ilike(target_email)
+    ).first()
+
+    if existing_inst and existing_inst.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"An institution with email '{target_email}' is already registered. Please proceed to Login."
+        )
+
+    existing_user = db.query(models.User).filter(
+        models.User.email.ilike(target_email)
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"An account with email '{target_email}' is already registered. Please proceed to Login."
+        )
+
     # Generate a real random 6-digit cryptographic OTP
     otp_code = f"{secrets.randbelow(900000) + 100000}"
     expires_at = datetime.utcnow() + timedelta(minutes=10)

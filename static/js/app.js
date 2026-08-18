@@ -217,7 +217,14 @@ async function handleInstitutionRegister() {
     showToast(res.message || 'OTP sent to official email', 'success');
     navigateTo('page-4-otp');
   } catch (err) {
-    showToast(`Registration failed: ${err.message}`, 'error');
+    if (err.message && err.message.toLowerCase().includes('already registered')) {
+      showToast(err.message, 'warning');
+      const loginEmail = document.getElementById('login-email');
+      if (loginEmail) loginEmail.value = email;
+      setTimeout(() => navigateTo('page-2-login'), 1800);
+    } else {
+      showToast(`Registration failed: ${err.message}`, 'error');
+    }
   }
 }
 

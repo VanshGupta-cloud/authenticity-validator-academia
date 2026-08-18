@@ -11,6 +11,7 @@ class Role(str, Enum):
     ADMIN = "ADMIN"
     ISSUER = "ISSUER"
     VERIFIER = "VERIFIER"
+    STUDENT = "STUDENT"
 
 
 # ============================================================
@@ -18,19 +19,19 @@ class Role(str, Enum):
 # ============================================================
 
 class RegisterRequest(BaseModel):
-    institution_id: Optional[UUID] = None
+    institution_id: Optional[Union[UUID, str]] = None
     full_name: str
     email: EmailStr
     password: str
-    role: Role = Role.ISSUER
+    role: Union[Role, str] = Role.ISSUER
 
 
 class UserResponse(BaseModel):
-    id: UUID
+    id: Union[UUID, str]
     full_name: str
     email: EmailStr
-    role: Role
-    institution_id: Optional[UUID] = None
+    role: Union[Role, str]
+    institution_id: Optional[Union[UUID, str]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -176,9 +177,9 @@ class CertificateBase(BaseModel):
 
 
 class CertificateCreate(CertificateBase):
-    institution_id: UUID
-    issuer_id: UUID
-    batch_id: Optional[UUID] = None
+    institution_id: Optional[Union[UUID, str]] = None
+    issuer_id: Optional[Union[UUID, str]] = None
+    batch_id: Optional[Union[UUID, str]] = None
 
 
 class CertificateUpdate(BaseModel):
@@ -187,10 +188,10 @@ class CertificateUpdate(BaseModel):
 
 
 class CertificateResponse(CertificateBase):
-    id: UUID
-    institution_id: UUID
-    issuer_id: UUID
-    batch_id: Optional[UUID] = None
+    id: Union[UUID, str]
+    institution_id: Optional[Union[UUID, str]] = None
+    issuer_id: Optional[Union[UUID, str]] = None
+    batch_id: Optional[Union[UUID, str]] = None
     status: str
     revocation_reason: Optional[str] = None
     revoked_at: Optional[datetime] = None
