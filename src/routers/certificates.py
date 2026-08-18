@@ -22,6 +22,7 @@ router = APIRouter(
 def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
     """
     Extracts structured academic certificate fields and identifiers from uploaded PDF bytes.
+    Supports both ReportLab columnar tables and standard labeled layout certificates.
     """
     extracted = {
         "certificate_number": None,
@@ -50,29 +51,53 @@ def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
             extracted["student_roll_no"] = m_roll.group(1).strip()
 
         # 3. Student Name
-        m_name = re.search(r'This is to certify that\s*\n\s*([^\n\r]+)', full_text, re.IGNORECASE)
-        if m_name:
-            extracted["student_name"] = m_name.group(1).strip()
+        # Pattern A: Name line immediately preceding "Roll Number"
+        m_name_above_roll = re.search(r'\n\s*([A-Za-z\s\.\-]{2,40})\s*\n\s*Roll Number', full_text, re.IGNORECASE)
+        if m_name_above_roll and 'CERTIFICATE' not in m_name_above_roll.group(1).upper() and 'ACHIEVEMENT' not in m_name_above_roll.group(1).upper() and m_name_above_roll.group(1).strip().upper() != 'NAME':
+            name_cand = m_name_above_roll.group(1).strip()
+            name_cand = re.sub(r'(?i)This is to certify that', '', name_cand).strip()
+            if name_cand:
+                extracted["student_name"] = name_cand
+        
+        if not extracted["student_name"]:
+            # Pattern B: Name line immediately following "This is to certify that"
+            m_name = re.search(r'This is to certify that\s*\n\s*([A-Za-z\s\.\-]{2,40})', full_text, re.IGNORECASE)
+            if m_name and 'CERTIFICATE' not in m_name.group(1).upper():
+                name_cand = m_name.group(1).strip()
+                name_cand = re.sub(r'(?i)This is to certify that', '', name_cand).strip()
+                if name_cand:
+                    extracted["student_name"] = name_cand
 
         # 4. Course / Degree Name
         m_course = re.search(r'completed the course\s*\n\s*([^\n\r]+)', full_text, re.IGNORECASE)
         if m_course:
             extracted["course_name"] = m_course.group(1).strip()
 
-        # 5. Issue Date
-        m_date = re.search(r'Issue Date\s*\n\s*([\d\-/]+)', full_text, re.IGNORECASE)
-        if m_date:
-            extracted["issue_date"] = m_date.group(1).strip()
+        # 5. Columnar Table Block Parsing (ReportLab table structure):
+        # Format: CERT-XXXX \n DD-MM-YYYY \n MARKS \n CGPA
+        table_m = re.search(
+            r'\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b\s*\n\s*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\s*\n\s*(\d+)\s*\n\s*([\d\.]+)',
+            full_text,
+            re.IGNORECASE
+        )
+        if table_m:
+            extracted["certificate_number"] = table_m.group(1).upper()
+            extracted["issue_date"] = table_m.group(2).strip()
+            extracted["marks"] = table_m.group(3).strip()
+            extracted["cgpa"] = table_m.group(4).strip()
+        else:
+            # Fallback to inline labels
+            m_date = re.search(r'(?:Issue Date|Date)[:\s]+([\d\-/]+)', full_text, re.IGNORECASE)
+            if m_date:
+                extracted["issue_date"] = m_date.group(1).strip()
 
-        # 6. Marks
-        m_marks = re.search(r'Marks\s*\n\s*(\d+)', full_text, re.IGNORECASE)
-        if m_marks:
-            extracted["marks"] = m_marks.group(1).strip()
+            m_marks = re.search(r'(?:Marks|Score|Total Marks)[:\s]+(\d+)', full_text, re.IGNORECASE)
+            if m_marks:
+                extracted["marks"] = m_marks.group(1).strip()
 
-        # 7. CGPA
-        m_cgpa = re.search(r'CGPA\s*\n\s*([\d\.]+)', full_text, re.IGNORECASE)
-        if m_cgpa:
-            extracted["cgpa"] = m_cgpa.group(1).strip()
+            m_cgpa = re.search(r'(?:CGPA|GPA)[:\s]+([\d\.]+)', full_text, re.IGNORECASE)
+            if m_cgpa:
+                extracted["cgpa"] = m_cgpa.group(1).strip()
 
     except Exception as e:
         print(f"[PDF EXTRACTOR] Notice: {e}")

@@ -1,8 +1,8 @@
 import urllib.request
 import json
 import uuid
-import tempfile
-from reportlab.pdfgen import canvas
+from datetime import date
+from PDF.certificate_generator import Certificate, generate_certificate_pdf
 
 def upload_pdf(filepath):
     boundary = uuid.uuid4().hex
@@ -24,33 +24,50 @@ def upload_pdf(filepath):
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read().decode())
 
-print("--- Test 1: Real Valid Certificate ---")
-res1 = upload_pdf("generated_certificates/CERT-2026-BFB6E7E4.pdf")
-print("Found:", res1["found"], "| Matches Record:", res1["document_matches_record"], "| Status:", res1["status"])
+print("==================================================================")
+print("TEST 1: Uploading ORIGINAL Certificate (CERT-2026-B97DA3E5 - 1000 Marks, CGPA 4)")
+print("==================================================================")
+cert_orig = Certificate(
+    id=uuid.uuid4(),
+    certificate_number="CERT-2026-B97DA3E5",
+    institution_id=uuid.uuid4(),
+    issuer_id=uuid.uuid4(),
+    student_name="Arpit",
+    student_roll_no="25252525252",
+    course_name="Bachelors of Science in Computer Science",
+    issue_date=date(2008, 3, 18),
+    marks="1000",
+    cgpa="4"
+)
+orig_pdf_path = "generated_certificates/CERT-2026-B97DA3E5.pdf"
+generate_certificate_pdf(cert_orig, "CERT-2026-B97DA3E5", orig_pdf_path, "NAME", "http://localhost:8000")
 
-print("\n--- Test 2: Unregistered / Fake PDF Document ---")
-with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-    c = canvas.Canvas(tmp.name)
-    c.drawString(100, 750, "Random Unregistered PDF Document")
-    c.drawString(100, 700, "Certificate Number: CERT-9999-FAKE9999")
-    c.save()
-    fake_path = tmp.name
+res_orig = upload_pdf(orig_pdf_path)
+print("Found:", res_orig["found"])
+print("Matches Record:", res_orig["document_matches_record"])
+print("Status:", res_orig["status"])
+print("Mismatches:", res_orig["mismatches"])
 
-res2 = upload_pdf(fake_path)
-print("Found:", res2["found"], "| Matches Record:", res2["document_matches_record"], "| Status:", res2["status"], "| Message:", res2.get("message"))
+print("\n==================================================================")
+print("TEST 2: Uploading EDITED/TAMPERED Certificate (Marks changed to 1025, CGPA changed to 5)")
+print("==================================================================")
+cert_edited = Certificate(
+    id=uuid.uuid4(),
+    certificate_number="CERT-2026-B97DA3E5",
+    institution_id=uuid.uuid4(),
+    issuer_id=uuid.uuid4(),
+    student_name="Arpit",
+    student_roll_no="25252525252",
+    course_name="Bachelors of Science in Computer Science",
+    issue_date=date(2008, 3, 18),
+    marks="1025",
+    cgpa="5"
+)
+edited_pdf_path = "test_tampered_edited.pdf"
+generate_certificate_pdf(cert_edited, "CERT-2026-B97DA3E5", edited_pdf_path, "NAME", "http://localhost:8000")
 
-print("\n--- Test 3: Tampered Certificate (Name Altered in PDF) ---")
-with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-    c = canvas.Canvas(tmp.name)
-    c.drawString(100, 750, "Certificate Number: CERT-2026-BFB6E7E4")
-    c.drawString(100, 700, "This is to certify that")
-    c.drawString(100, 680, "FAKE TAMPERED STUDENT")
-    c.drawString(100, 650, "Roll Number: CS-2026-099")
-    c.drawString(100, 600, "Marks\n500")
-    c.drawString(100, 550, "CGPA\n10.0")
-    c.save()
-    tampered_path = tmp.name
-
-res3 = upload_pdf(tampered_path)
-print("Found:", res3["found"], "| Matches Record:", res3["document_matches_record"], "| Status:", res3["status"])
-print("Mismatches detected:", res3["mismatches"])
+res_edited = upload_pdf(edited_pdf_path)
+print("Found:", res_edited["found"])
+print("Matches Record:", res_edited["document_matches_record"])
+print("Status:", res_edited["status"])
+print("Mismatches Detected:", res_edited["mismatches"])
