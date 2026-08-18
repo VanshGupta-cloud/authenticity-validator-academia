@@ -65,3 +65,16 @@ class VerificationLog(Base):
     verified_by_ip = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class OtpVerification(Base):
+    __tablename__ = "otp_verifications"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    email = Column(String(255), nullable=False, index=True)
+    otp_code = Column(String(10), nullable=False)
+    institution_name = Column(String(255), nullable=True)
+    address = Column(String(255), nullable=True)
+    is_verified = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

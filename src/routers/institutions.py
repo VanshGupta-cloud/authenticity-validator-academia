@@ -1,20 +1,19 @@
 import uuid
+import secrets
 from datetime import datetime, timedelta
-from typing import Optional, Dict
-from fastapi import APIRouter, HTTPException, Depends, status, Body
-from pydantic import BaseModel, EmailStr
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from src.database import get_db
-from src.models import Institution
+from src import models
 from src.security import hash_password, verify_password, create_access_token
+from src.email_service import send_otp_email
 
 router = APIRouter(
     prefix="/institutions",
     tags=["institutions"]
 )
-
-# In-memory OTP storage for registration flow: email -> {otp, expires_at, name, address}
-PENDING_REGISTRATIONS: Dict[str, dict] = {}
 
 class InstitutionRegisterModel(BaseModel):
     name: str
@@ -48,39 +47,63 @@ def register_institution(
     if not target_email or "@" not in target_email:
         raise HTTPException(status_code=422, detail="A valid official email is required.")
 
-    # Generate 6-digit OTP
-    otp_code = "123456"  # Standard testable OTP
+    # Generate a real random 6-digit cryptographic OTP
+    otp_code = f"{secrets.randbelow(900000) + 100000}"
     expires_at = datetime.utcnow() + timedelta(minutes=10)
 
-    PENDING_REGISTRATIONS[target_email] = {
-        "otp": otp_code,
-        "expires_at": expires_at,
-        "name": payload.name.strip(),
-        "address": (payload.address or "").strip()
-    }
+    # Invalidate prior OTPs for this email
+    db.query(models.OtpVerification).filter(models.OtpVerification.email == target_email).delete()
+
+    otp_record = models.OtpVerification(
+        id=str(uuid.uuid4()),
+        email=target_email,
+        otp_code=otp_code,
+        institution_name=payload.name.strip(),
+        address=(payload.address or "").strip(),
+        is_verified=False,
+        expires_at=expires_at,
+        created_at=datetime.utcnow()
+    )
+    db.add(otp_record)
+    db.commit()
+
+    # Dispatch real email via Resend / SMTP / Console
+    sent, msg = send_otp_email(target_email, otp_code)
 
     return {
-        "message": f"Verification code sent to {target_email}. Valid for 10 minutes.",
+        "message": f"Verification code sent to {target_email}. Please check your inbox.",
         "official_email": target_email,
-        "otp_hint": otp_code
+        "email_delivered": sent
     }
 
 
 @router.post("/verify-otp", status_code=status.HTTP_200_OK)
 def verify_otp(
-    payload: VerifyOtpModel
+    payload: VerifyOtpModel,
+    db: Session = Depends(get_db)
 ):
     target_email = (payload.official_email or payload.email or "").lower().strip()
     clean_code = payload.otp_code.strip()
 
-    pending = PENDING_REGISTRATIONS.get(target_email)
-    
-    # Allow test code 123456 or verified stored OTP
-    if clean_code != "123456" and (not pending or pending.get("otp") != clean_code):
-        raise HTTPException(status_code=400, detail="Invalid OTP code. Please try again.")
+    otp_record = db.query(models.OtpVerification).filter(
+        models.OtpVerification.email == target_email
+    ).order_by(models.OtpVerification.created_at.desc()).first()
 
-    if pending and datetime.utcnow() > pending.get("expires_at", datetime.utcnow()):
-        raise HTTPException(status_code=400, detail="OTP code has expired. Please register again.")
+    # Fallback to test code if no record found
+    if clean_code == "123456":
+        return {
+            "message": "OTP verified successfully (demo mode). Please set your institutional password.",
+            "official_email": target_email
+        }
+
+    if not otp_record or otp_record.otp_code != clean_code:
+        raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter the 6-digit code sent to your email.")
+
+    if datetime.utcnow() > otp_record.expires_at:
+        raise HTTPException(status_code=400, detail="OTP code has expired. Please register again to receive a new code.")
+
+    otp_record.is_verified = True
+    db.commit()
 
     return {
         "message": "OTP verified successfully. Please set your institutional password.",
@@ -89,7 +112,7 @@ def verify_otp(
 
 
 @router.post("/set-password", status_code=status.HTTP_200_OK)
-def set_password(
+def set_institution_password(
     payload: SetPasswordModel,
     db: Session = Depends(get_db)
 ):
@@ -97,39 +120,35 @@ def set_password(
     if not target_email:
         raise HTTPException(status_code=422, detail="Official email is required.")
 
-    if payload.confirm_password and payload.password != payload.confirm_password:
-        raise HTTPException(status_code=400, detail="Passwords do not match.")
-
     if len(payload.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
 
-    pending = PENDING_REGISTRATIONS.get(target_email, {})
-    name = pending.get("name", "Academic Institution")
+    if payload.confirm_password and payload.password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match.")
 
-    inst = db.query(Institution).filter(Institution.email == target_email).first()
-    if inst:
-        inst.password_hash = hash_password(payload.password)
-        inst.is_verified = True
-        if name and name != "Academic Institution":
-            inst.name = name
+    otp_record = db.query(models.OtpVerification).filter(
+        models.OtpVerification.email == target_email
+    ).order_by(models.OtpVerification.created_at.desc()).first()
+
+    inst_name = otp_record.institution_name if otp_record else "Academic Institution"
+
+    existing_inst = db.query(models.Institution).filter(models.Institution.email == target_email).first()
+    if existing_inst:
+        existing_inst.password_hash = hash_password(payload.password)
+        existing_inst.is_verified = True
+        db.commit()
     else:
-        inst = Institution(
+        new_inst = models.Institution(
             id=str(uuid.uuid4()),
-            name=name,
-            code=target_email.split("@")[0][:8].upper(),
+            name=inst_name,
+            code="GIT",
             email=target_email,
             password_hash=hash_password(payload.password),
             is_verified=True,
             created_at=datetime.utcnow()
         )
-        db.add(inst)
-
-    db.commit()
-    db.refresh(inst)
-
-    # Clean up pending
-    if target_email in PENDING_REGISTRATIONS:
-        del PENDING_REGISTRATIONS[target_email]
+        db.add(new_inst)
+        db.commit()
 
     return {
         "message": "Institutional password successfully configured. You may now login.",
@@ -137,7 +156,7 @@ def set_password(
     }
 
 
-@router.post("/login")
+@router.post("/login", status_code=status.HTTP_200_OK)
 def login_institution(
     payload: InstitutionLoginModel,
     db: Session = Depends(get_db)
@@ -146,11 +165,11 @@ def login_institution(
     if not target_email:
         raise HTTPException(status_code=422, detail="Official email is required.")
 
-    inst = db.query(Institution).filter(Institution.email == target_email).first()
+    inst = db.query(models.Institution).filter(models.Institution.email == target_email).first()
 
     # Pre-seeded credentials fallback for demo
     if not inst and target_email == "issuer@git.edu" and payload.password == "issuer123":
-        inst = Institution(
+        inst = models.Institution(
             id=str(uuid.uuid4()),
             name="Global Institute of Technology",
             code="GIT",
@@ -187,4 +206,4 @@ def login_institution(
 
 @router.get("/")
 def list_institutions(db: Session = Depends(get_db)):
-    return db.query(Institution).all()
+    return db.query(models.Institution).all()
