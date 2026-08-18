@@ -413,10 +413,10 @@
             </div>
 
             <!-- Generated PDF Preview Container -->
-            <div id="issued-pdf-container" style="margin-top: 1.5rem; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; background: #0f172a;">
-              <div style="background: #1e293b; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 0.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--color-gold); font-weight: 600; font-size: 0.9rem;">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <div id="issued-pdf-container" style="margin-top: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--white); box-shadow: var(--shadow-card);">
+              <div style="background: var(--color-primary); color: var(--white); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--white); font-weight: 600; font-size: 0.9rem;">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--color-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                   <span>Official AVFA Certificate PDF (Embedded QR Included)</span>
                 </div>
                 <a id="download-cert-btn" href="#" class="btn btn-gold btn-sm" download="certificate.pdf" target="_blank">
@@ -575,6 +575,11 @@
       </section>
 
     </main>
+ 
+    <!-- Editorial Footer -->
+    <footer class="site-footer">
+      © 2026 AVFA Academia — Authenticity Validator for Academia (SIH25029). Trust what you can verify.
+    </footer>
 
     <!-- Global Toast Container -->
     <div id="toast-container" class="toast-container"></div>
