@@ -71,7 +71,14 @@ def serve_index():
     if not os.path.exists(index_path):
         index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     return {"status": "AVFA API is running", "docs": "/docs"}
 
 @app.get("/health")
