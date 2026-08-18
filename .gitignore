@@ -225,3 +225,7 @@ __marimo__/
 Final UI/
 *.zip
 generated_certificates/
+# Temporary test artifacts and scratch scripts
+scratch/
+doc_processing/_*.png
+test_tampered_edited.pdf

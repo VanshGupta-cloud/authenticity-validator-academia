@@ -5,6 +5,7 @@ import hashlib
 import json
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Form, Body
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -19,6 +20,26 @@ router = APIRouter(
     prefix="/certificates",
     tags=["Certificates"]
 )
+
+def is_valid_uuid(val: Any) -> bool:
+    try:
+        uuid.UUID(str(val))
+        return True
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+def get_cert_by_identifier(db: Session, identifier: str):
+    if not identifier:
+        return None
+    ident = str(identifier).strip()
+    cert = db.query(models.Certificate).filter(models.Certificate.certificate_number.ilike(ident)).first()
+    if cert:
+        return cert
+    if is_valid_uuid(ident):
+        cert = db.query(models.Certificate).filter(models.Certificate.id == ident).first()
+        if cert:
+            return cert
+    return None
 
 def extract_pdf_fields(content: bytes) -> Dict[str, Any]:
     """
@@ -203,10 +224,7 @@ async def verify_certificate(
 
         print(f"[VERIFY DEBUG] Querying DB for cert_clean: '{cert_clean}'", flush=True)
 
-        cert = db.query(models.Certificate).filter(
-            (models.Certificate.certificate_number.ilike(cert_clean)) |
-            (models.Certificate.id == cert_clean)
-        ).first()
+        cert = get_cert_by_identifier(db, cert_clean)
         print(f"[VERIFY DEBUG] Query result: {cert}", flush=True)
 
     if not cert and search_hash:
@@ -369,12 +387,20 @@ async def verify_document(
     if extracted.get("marks") and getattr(cert, "marks", None):
         doc_marks = str(extracted["marks"]).strip()
         rec_marks = str(cert.marks).strip()
-        if doc_marks != rec_marks:
-            mismatches.append({
-                "field": "Total Marks",
-                "document_value": doc_marks,
-                "record_value": rec_marks
-            })
+        try:
+            if abs(float(doc_marks) - float(rec_marks)) > 0.01:
+                mismatches.append({
+                    "field": "Total Marks",
+                    "document_value": doc_marks,
+                    "record_value": rec_marks
+                })
+        except Exception:
+            if doc_marks.lower() != rec_marks.lower():
+                mismatches.append({
+                    "field": "Total Marks",
+                    "document_value": doc_marks,
+                    "record_value": rec_marks
+                })
 
     # CGPA Check
     if extracted.get("cgpa") and cert.cgpa:
@@ -466,10 +492,7 @@ def get_blockchain_ledger(db: Session = Depends(get_db)):
 def get_certificate_by_id(cert_id: str, db: Session = Depends(get_db)):
     if cert_id == "blockchain-ledger":
         return get_blockchain_ledger(db)
-    cert = db.query(models.Certificate).filter(
-        (models.Certificate.id == cert_id) |
-        (models.Certificate.certificate_number == cert_id)
-    ).first()
+    cert = get_cert_by_identifier(db, cert_id)
     if not cert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -485,10 +508,7 @@ def revoke_certificate(
     payload: schemas.RevokeRequest, 
     db: Session = Depends(get_db)
 ):
-    cert = db.query(models.Certificate).filter(
-        (models.Certificate.id == cert_id) |
-        (models.Certificate.certificate_number == cert_id)
-    ).first()
+    cert = get_cert_by_identifier(db, cert_id)
     if not cert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -526,10 +546,7 @@ def ocr_compare_fields(
     cert_num = payload.get("certificate_number")
     extracted_fields = payload.get("extracted_fields", {})
 
-    cert = db.query(models.Certificate).filter(
-        (models.Certificate.certificate_number == cert_num) |
-        (models.Certificate.id == cert_num)
-    ).first()
+    cert = get_cert_by_identifier(db, cert_num)
 
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found in registry")
@@ -562,3 +579,63 @@ def ocr_compare_fields(
         "total_fields": comparison.get("total_fields", 5),
         "is_valid": is_valid
     }
+
+# 8. DOWNLOAD Certificate PDF Endpoint
+@router.get("/download/{cert_identifier}")
+def download_certificate_pdf(cert_identifier: str, db: Session = Depends(get_db)):
+    cert = get_cert_by_identifier(db, cert_identifier)
+    if not cert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Certificate {cert_identifier} not found in database registry."
+        )
+
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    pdf_path = os.path.join(root_dir, "generated_certificates", f"{cert.certificate_number}.pdf")
+
+    if not os.path.exists(pdf_path):
+        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+        from PDF.certificate_generator import Certificate as PDFCert, generate_certificate_pdf
+        from datetime import date
+        parsed_date = date.today()
+        if cert.issue_date:
+            try:
+                parsed_date = datetime.strptime(str(cert.issue_date).strip()[:10], "%Y-%m-%d").date()
+            except Exception:
+                pass
+
+        inst_name = "Global Institute of Technology"
+        if cert.institution_id:
+            inst = db.query(models.Institution).filter(models.Institution.id == cert.institution_id).first()
+            if inst:
+                inst_name = inst.name
+
+        c_obj = PDFCert(
+            id=cert.id,
+            certificate_number=cert.certificate_number,
+            institution_id=cert.institution_id,
+            issuer_id=cert.institution_id,
+            student_name=cert.student_name,
+            student_roll_no=cert.student_roll_no,
+            course_name=cert.course_name,
+            issue_date=parsed_date,
+            marks=getattr(cert, "marks", None),
+            cgpa=cert.cgpa,
+            sha256_hash=cert.sha256_hash,
+            digital_signature=cert.digital_signature,
+            status=cert.status
+        )
+        generate_certificate_pdf(
+            certificate=c_obj,
+            certificate_number=cert.certificate_number,
+            output_path=pdf_path,
+            institution_name=inst_name,
+            verification_base_url="http://localhost:8000/verify"
+        )
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{cert.certificate_number}.pdf",
+        headers={"Content-Disposition": f'attachment; filename="{cert.certificate_number}.pdf"'}
+    )

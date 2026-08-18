@@ -2,6 +2,7 @@ import hashlib
 import json
 import base64
 import os
+import re
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
@@ -22,12 +23,12 @@ def get_or_create_private_key(
     paths_to_check = [
         private_key_path,
         os.path.join(
-            os.path.dirname(_file_),
+            os.path.dirname(__file__),
             "..",
             private_key_path
         ),
         os.path.join(
-            os.path.dirname(_file_),
+            os.path.dirname(__file__),
             private_key_path
         ),
     ]
@@ -68,7 +69,7 @@ def build_canonical_payload(
         if val is None:
             return None
         try:
-            m = re.search(r'\d+(\.\d+)?', str(val))
+            m = re.search(r"\d+(\.\d+)?", str(val))
             if m:
                 return f"{float(m.group(0)):.2f}"
             return f"{float(val):.2f}"

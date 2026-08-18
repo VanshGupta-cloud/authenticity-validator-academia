@@ -156,7 +156,7 @@ def generate_certificate_pdf(
     # Prevent unsafe certificate numbers from being used
     # as filenames.
     if not re.fullmatch(
-        r"CERT-\d{4}-[A-Za-z0-9_-]+",
+        r"(CERT-\d{4}-[A-Za-z0-9_-]+|AVFA-[A-Za-z0-9_-]+|[A-Za-z0-9_-]+)",
         certificate_number,
     ):
         raise ValueError(

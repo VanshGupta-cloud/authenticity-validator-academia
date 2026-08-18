@@ -2,15 +2,18 @@ import os
 import zipfile
 from pathlib import Path
 
-# Paths to package
-BASE_DIR = Path(r"c:\Users\kesar\Antigravity")
+# Dynamic workspace base directory
+BASE_DIR = Path(__file__).resolve().parent
 ZIP_OUTPUT = BASE_DIR / "avfa-frontend-complete.zip"
 
-INCLUDE_DIRS = ["static", "src", "docs", "qr", "doc_processing", "hashing"]
+INCLUDE_DIRS = ["static", "frontend", "src", "docs", "qr", "doc_processing", "hashing", "PDF"]
 INCLUDE_FILES = [
     "test_e2e.py",
+    "test_workflow.py",
+    "test_verify_doc.py",
     "institution_private_key.pem",
-    "institution_public_key.pem"
+    "institution_public_key.pem",
+    "requirements.txt"
 ]
 
 def create_zip():
@@ -37,28 +40,22 @@ def create_zip():
                 print(f"  Added: {f}")
 
         # Add README
-        readme_content = """# Authenticity Validator for Academia (AVFA) - Frontend & Backend Suite
+        readme_content = """# Authenticity Validator for Academia (AVFA) - Complete Suite (SIH25029)
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
-1. Install requirements:
+1. Install dependencies:
    ```bash
-   pip install fastapi uvicorn python-multipart cryptography sqlalchemy
+   pip install -r requirements.txt
    ```
 
-2. Run the application:
+2. Start the local server:
    ```bash
    uvicorn src.main:app --reload --port 8000
    ```
 
-3. Open your browser:
+3. Open in browser:
    http://localhost:8000
-
-## 📁 Key Frontend & Backend Structure
-- `static/index.html` - Single Page Application UI with all views & modals
-- `static/css/style.css` - Custom styling with design tokens & responsive grids
-- `static/js/app.js` - Client-side state, API calls, QR generation & pipeline animations
-- `src/` - FastAPI backend with RSA signing, SHA-256 verification, and SQLite/PostgreSQL fallback
 """
         zipf.writestr("README.md", readme_content)
         print("  Added: README.md")
