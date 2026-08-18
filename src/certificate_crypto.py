@@ -67,8 +67,13 @@ def build_canonical_payload(
     def normalize_number(val):
         if val is None:
             return None
-
-        return f"{float(val):.2f}"
+        try:
+            m = re.search(r'\d+(\.\d+)?', str(val))
+            if m:
+                return f"{float(m.group(0)):.2f}"
+            return f"{float(val):.2f}"
+        except Exception:
+            return str(val).strip()
 
     payload = {
         "student_name": student_name,
