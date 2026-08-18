@@ -13,17 +13,16 @@ class Role(str, Enum):
     VERIFIER = "VERIFIER"
 
 
-class CertificateStatus(str, Enum):
-    ISSUED = "ISSUED"
-    REVOKED = "REVOKED"
-
+# ============================================================
+# Individual User Auth (used by auth.py)
+# ============================================================
 
 class RegisterRequest(BaseModel):
-    institution_id: UUID
+    institution_id: Optional[UUID] = None
     full_name: str
     email: EmailStr
     password: str
-    role: Role
+    role: Role = Role.ISSUER
 
 
 class UserResponse(BaseModel):
@@ -31,7 +30,9 @@ class UserResponse(BaseModel):
     full_name: str
     email: EmailStr
     role: Role
-    institution_id: UUID
+    institution_id: Optional[UUID] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LoginRequest(BaseModel):
@@ -45,10 +46,14 @@ class LoginResponse(BaseModel):
     user: UserResponse
 
 
+# ============================================================
+# Institution Onboarding (used by institutions.py)
+# ============================================================
+
 class InstitutionRegisterRequest(BaseModel):
     name: str
     official_email: EmailStr
-    address: str | None = None
+    address: Optional[str] = None
 
 
 class InstitutionRegisterResponse(BaseModel):
@@ -85,13 +90,17 @@ class InstitutionLoginResponse(BaseModel):
     name: str
 
 
+# ============================================================
+# Certificate Issuance (used by certificate_issue.py)
+# ============================================================
+
 class CertificateIssueRequest(BaseModel):
     student_name: str
     student_roll_no: str
     course_name: str
-    issue_date: date
-    marks: Optional[Decimal] = None
-    cgpa: Optional[Decimal] = None
+    issue_date: str
+    marks: Optional[str] = None
+    cgpa: Optional[str] = None
 
 
 class CertificateIssueResponse(BaseModel):
@@ -105,10 +114,45 @@ class CertificateIssueResponse(BaseModel):
     cgpa: Optional[Decimal] = None
     sha256_hash: str
     digital_signature: str
-    status: CertificateStatus
+    status: str
+    qr_code_url: Optional[str] = None
+    pdf_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ============================================================
+# Certificate Verification (used by certificate_verify.py)
+# ============================================================
+
+class CertificateVerifyRequest(BaseModel):
+    certificate_id: Optional[UUID] = None
+    certificate_number: Optional[str] = None
+
+
+class FieldMismatch(BaseModel):
+    field: str
+    document_value: Optional[str] = None
+    record_value: Optional[str] = None
+
+
+class CertificateVerifyResponse(BaseModel):
+    hash_signature_valid: bool
+    tamper_detected: bool
+    certificate_number: Optional[str] = None
+    student_name: Optional[str] = None
+    student_roll_no: Optional[str] = None
+    course_name: Optional[str] = None
+    issue_date: Optional[date] = None
+    marks: Optional[Decimal] = None
+    cgpa: Optional[Decimal] = None
+    status: Optional[str] = None
+    message: str
+
+
+# ============================================================
+# Certificate CRUD (used by certificates.py — Vansh's endpoints)
+# ============================================================
 
 class CertificateBase(BaseModel):
     certificate_number: str
@@ -131,7 +175,7 @@ class CertificateCreate(CertificateBase):
 
 
 class CertificateUpdate(BaseModel):
-    status: Optional[CertificateStatus] = None
+    status: Optional[str] = None
     revocation_reason: Optional[str] = None
 
 
@@ -140,9 +184,9 @@ class CertificateResponse(CertificateBase):
     institution_id: UUID
     issuer_id: UUID
     batch_id: Optional[UUID] = None
-    status: CertificateStatus
+    status: str
     revocation_reason: Optional[str] = None
     revoked_at: Optional[datetime] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
