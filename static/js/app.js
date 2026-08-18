@@ -530,6 +530,37 @@ async function handleQrImageUpload(input) {
   }
 }
 
+// Helper to parse Certificate ID from QR payload, URL, or plain string
+function extractCertIdentifier(payload) {
+  if (!payload) return '';
+  const text = payload.trim();
+
+  // 1. Direct Regex match for standard AVFA format (e.g. CERT-2026-B97DA3E5, AVFA-GIT-2024-001)
+  const match = text.match(/\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b/i);
+  if (match) {
+    return match[1].toUpperCase();
+  }
+
+  // 2. Query string parsing (e.g. ?cert_id=, ?certificate_number=, ?id=, ?verify=, ?hash=)
+  if (text.includes('?')) {
+    try {
+      const url = new URL(text.startsWith('http') ? text : `http://dummy.com/${text}`);
+      const param = url.searchParams.get('cert_id') ||
+                    url.searchParams.get('certificate_number') ||
+                    url.searchParams.get('certificate_id') ||
+                    url.searchParams.get('cert_num') ||
+                    url.searchParams.get('verify') ||
+                    url.searchParams.get('id') ||
+                    url.searchParams.get('hash');
+      if (param) return param.trim().toUpperCase();
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return text;
+}
+
 // Decoded QR payload handler -> Extracts Certificate ID and auto-verifies
 async function onQrCodeScanned(decodedText) {
   console.log('QR Code Decoded:', decodedText);
@@ -537,18 +568,7 @@ async function onQrCodeScanned(decodedText) {
   // Stop camera feed
   stopCameraScanner();
 
-  // Extract certificate number string from payload
-  // Handles plain string: "CERT-2026-F7BCAB87", "AVFA-GIT-2024-001", or URL: "http://.../?verify=CERT-2024-001"
-  let cleanCertNum = decodedText.trim();
-
-  if (cleanCertNum.includes('verify=')) {
-    const urlParams = new URLSearchParams(cleanCertNum.split('?')[1] || '');
-    cleanCertNum = urlParams.get('verify') || cleanCertNum;
-  } else if (cleanCertNum.includes('hash=')) {
-    const urlParams = new URLSearchParams(cleanCertNum.split('?')[1] || '');
-    cleanCertNum = urlParams.get('hash') || cleanCertNum;
-  }
-
+  const cleanCertNum = extractCertIdentifier(decodedText);
   showToast(`QR Scanned: ${cleanCertNum}`, 'success');
 
   // Auto-fill manual input as reference
@@ -561,11 +581,12 @@ async function onQrCodeScanned(decodedText) {
 
 // Manual verify button click handler
 async function handleVerifyByNumber() {
-  const certNum = document.getElementById('verify-cert-num').value.trim();
-  if (!certNum) {
+  const rawInput = document.getElementById('verify-cert-num').value.trim();
+  if (!rawInput) {
     showToast('Please enter or scan a certificate number', 'error');
     return;
   }
+  const certNum = extractCertIdentifier(rawInput);
   await executeVerificationByNumber(certNum);
 }
 

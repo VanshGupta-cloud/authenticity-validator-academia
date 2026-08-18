@@ -171,13 +171,22 @@ async def verify_certificate(
         try:
             body = await request.json()
             search_hash = body.get("queried_hash") or body.get("sha256_hash")
-            search_cert_num = body.get("certificate_number") or body.get("cert_id")
-        except Exception:
-            pass
+            search_cert_num = body.get("certificate_number") or body.get("cert_id") or body.get("certificate_id")
+        except Exception as e:
+            print(f"[VERIFY DEBUG] json read exception: {e}", flush=True)
     elif "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
         form = await request.form()
         search_hash = form.get("queried_hash") or form.get("sha256_hash")
-        search_cert_num = form.get("certificate_number") or form.get("cert_id")
+        search_cert_num = form.get("certificate_number") or form.get("cert_id") or form.get("certificate_id")
+    else:
+        try:
+            body = await request.json()
+            search_hash = body.get("queried_hash") or body.get("sha256_hash")
+            search_cert_num = body.get("certificate_number") or body.get("cert_id") or body.get("certificate_id")
+        except Exception:
+            pass
+
+    print(f"[VERIFY DEBUG] content_type: {content_type} | search_cert_num: {search_cert_num} | search_hash: {search_hash}", flush=True)
 
     if not search_hash and not search_cert_num:
         raise HTTPException(
@@ -187,11 +196,18 @@ async def verify_certificate(
 
     cert = None
     if search_cert_num:
-        cert_clean = search_cert_num.strip()
+        cert_clean = str(search_cert_num).strip()
+        m_cert = re.search(r'\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b', cert_clean, re.IGNORECASE)
+        if m_cert:
+            cert_clean = m_cert.group(1).upper()
+
+        print(f"[VERIFY DEBUG] Querying DB for cert_clean: '{cert_clean}'", flush=True)
+
         cert = db.query(models.Certificate).filter(
             (models.Certificate.certificate_number.ilike(cert_clean)) |
             (models.Certificate.id == cert_clean)
         ).first()
+        print(f"[VERIFY DEBUG] Query result: {cert}", flush=True)
 
     if not cert and search_hash:
         search_hash_clean = search_hash.strip().lower()

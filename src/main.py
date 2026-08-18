@@ -44,7 +44,6 @@ app.include_router(auth.router)
 app.include_router(institutions.router)
 app.include_router(certificate_issue.router)
 app.include_router(certificates.router)
-app.include_router(certificate_verify.router)
 
 # Directory paths
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
