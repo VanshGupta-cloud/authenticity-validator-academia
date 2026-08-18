@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AVFA — Authenticity Validator for Academia (SIH25029)</title>
   <meta name="description" content="Tamper-Proof Academic Document Issuance and Verification System. Built for SIH25029.">
-  <link rel="stylesheet" href="/static/css/style.css?v=4.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=5.0">
   <!-- HTML5 QR Code Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -95,12 +95,12 @@
             <form id="form-login" onsubmit="event.preventDefault(); handleInstitutionLogin();">
               <div class="form-group">
                 <label class="form-label">Official Email</label>
-                <input type="email" id="login-email" class="form-control" placeholder="admin@university.edu" required value="issuer@git.edu">
+                <input type="email" id="login-email" class="form-control" placeholder="admin@university.edu" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" id="login-password" class="form-control" placeholder="••••••••" required value="issuer123">
+                <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
               </div>
 
               <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Login</button>
@@ -135,17 +135,17 @@
             <form id="form-register" onsubmit="event.preventDefault(); handleInstitutionRegister();">
               <div class="form-group">
                 <label class="form-label">Institution Name</label>
-                <input type="text" id="reg-name" class="form-control" placeholder="e.g. National Institute of Technology" required value="National Institute of Technology">
+                <input type="text" id="reg-name" class="form-control" placeholder="e.g. National Institute of Technology" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Official Email</label>
-                <input type="email" id="reg-email" class="form-control" placeholder="registrar@nit.ac.in" required value="registrar@nit.ac.in">
+                <input type="email" id="reg-email" class="form-control" placeholder="registrar@university.edu" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Address (Optional)</label>
-                <input type="text" id="reg-address" class="form-control" placeholder="Campus Address, City, State" value="Ranchi, Jharkhand">
+                <input type="text" id="reg-address" class="form-control" placeholder="Campus Address, City, State">
               </div>
 
               <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Register</button>
@@ -180,16 +180,16 @@
 
             <form id="form-otp" onsubmit="event.preventDefault(); handleVerifyOtp();">
               <div class="otp-input-group">
-                <input type="text" class="otp-box" maxlength="1" id="otp-1" value="1" autofocus oninput="handleOtpInput(this, 'otp-2')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-2" value="2" oninput="handleOtpInput(this, 'otp-3')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-3" value="3" oninput="handleOtpInput(this, 'otp-4')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-4" value="4" oninput="handleOtpInput(this, 'otp-5')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-5" value="5" oninput="handleOtpInput(this, 'otp-6')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-6" value="6" oninput="handleOtpInput(this, null)">
+                <input type="text" class="otp-box" maxlength="1" id="otp-1" autofocus oninput="handleOtpInput(this, 'otp-2')">
+                <input type="text" class="otp-box" maxlength="1" id="otp-2" oninput="handleOtpInput(this, 'otp-3')">
+                <input type="text" class="otp-box" maxlength="1" id="otp-3" oninput="handleOtpInput(this, 'otp-4')">
+                <input type="text" class="otp-box" maxlength="1" id="otp-4" oninput="handleOtpInput(this, 'otp-5')">
+                <input type="text" class="otp-box" maxlength="1" id="otp-5" oninput="handleOtpInput(this, 'otp-6')">
+                <input type="text" class="otp-box" maxlength="1" id="otp-6" oninput="handleOtpInput(this, null)">
               </div>
 
-              <div style="font-size: 0.8rem; color: var(--color-gold); text-align: center; margin-bottom: 1.5rem;">
-                ⏱ Code expires in 10 minutes (Test OTP: <strong>123456</strong>)
+              <div style="font-size: 0.8rem; color: var(--color-text-muted); text-align: center; margin-bottom: 1.5rem;">
+                ⏱ Code expires in 10 minutes. Please enter the 6-digit code sent to your email.
               </div>
 
               <button type="submit" class="btn btn-primary btn-block btn-lg">Verify</button>
@@ -215,12 +215,12 @@
             <form id="form-password" onsubmit="event.preventDefault(); handleSetPassword();">
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" id="set-pass" class="form-control" placeholder="••••••••" required value="adminPass@2026">
+                <input type="password" id="set-pass" class="form-control" placeholder="••••••••" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Confirm Password</label>
-                <input type="password" id="set-pass-confirm" class="form-control" placeholder="••••••••" required value="adminPass@2026">
+                <input type="password" id="set-pass-confirm" class="form-control" placeholder="••••••••" required>
               </div>
 
               <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Set Password</button>
@@ -338,33 +338,33 @@
             <form id="form-issue" onsubmit="event.preventDefault(); handleIssueCertificate();">
               <div class="form-group">
                 <label class="form-label">Student Name</label>
-                <input type="text" id="issue-name" class="form-control" placeholder="Full Student Name" required value="Elena R. Vance">
+                <input type="text" id="issue-name" class="form-control" placeholder="e.g. John Doe" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Student Roll Number</label>
-                <input type="text" id="issue-roll" class="form-control" placeholder="e.g. CS-2026-042" required value="CS-2026-042">
+                <input type="text" id="issue-roll" class="form-control" placeholder="e.g. CS-2026-042" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Course / Degree Name</label>
-                <input type="text" id="issue-course" class="form-control" placeholder="e.g. Master of Science in Computer Science" required value="Master of Science in Computer Science">
+                <input type="text" id="issue-course" class="form-control" placeholder="e.g. Bachelor of Technology in Computer Science" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Issue Date</label>
-                <input type="date" id="issue-date" class="form-control" required value="2026-08-16">
+                <input type="date" id="issue-date" class="form-control" required>
               </div>
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
                   <label class="form-label">Total Marks (Score)</label>
-                  <input type="number" id="issue-marks" class="form-control" placeholder="e.g. 485" required value="485" min="0" max="1000">
+                  <input type="number" id="issue-marks" class="form-control" placeholder="e.g. 485" required min="0" max="1000">
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">CGPA</label>
-                  <input type="number" step="0.01" id="issue-cgpa" class="form-control" placeholder="e.g. 9.82" required value="9.82" min="0" max="10">
+                  <input type="number" step="0.01" id="issue-cgpa" class="form-control" placeholder="e.g. 9.82" required min="0" max="10">
                 </div>
               </div>
 
@@ -412,7 +412,22 @@
               <div id="issued-cert-status"><span class="status-pill valid">ISSUED</span></div>
             </div>
 
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <!-- Generated PDF Preview Container -->
+            <div id="issued-pdf-container" style="margin-top: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--white); box-shadow: var(--shadow-card);">
+              <div style="background: var(--color-primary); color: var(--white); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--white); font-weight: 600; font-size: 0.9rem;">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--color-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Official AVFA Certificate PDF (Embedded QR Included)</span>
+                </div>
+                <a id="download-cert-btn" href="#" class="btn btn-gold btn-sm" download="certificate.pdf" target="_blank">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download Certificate
+                </a>
+              </div>
+              <iframe id="issued-pdf-frame" src="" style="width: 100%; height: 520px; border: none; background: #ffffff;" title="Certificate PDF Preview"></iframe>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
               <button class="btn btn-primary btn-block" onclick="navigateTo('page-7-issue')">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 Issue Another
@@ -509,12 +524,10 @@
                     </summary>
                     <div style="margin-top: 1rem;">
                       <div class="form-group">
-                        <input type="text" id="verify-cert-num" class="form-control" placeholder="e.g. AVFA-GIT-2024-001 or CERT-2026-XXXX" value="AVFA-GIT-2024-001">
+                        <input type="text" id="verify-cert-num" class="form-control" placeholder="e.g. CERT-2026-BD6AD0A8">
                       </div>
-                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="handleVerifyByNumber()">Verify Manually</button>
-                        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('verify-cert-num').value='AVFA-GIT-2024-001'; handleVerifyByNumber();">Test Valid</button>
-                        <button type="button" class="btn btn-ghost btn-sm" style="color: var(--color-danger);" onclick="document.getElementById('verify-cert-num').value='CERT-2024-0034'; handleVerifyByNumber();">Test Revoked</button>
+                      <div>
+                        <button type="button" class="btn btn-primary btn-block" onclick="handleVerifyByNumber()">Verify Certificate</button>
                       </div>
                     </div>
                   </details>
@@ -560,11 +573,16 @@
       </section>
 
     </main>
+ 
+    <!-- Editorial Footer -->
+    <footer class="site-footer">
+      © 2026 AVFA Academia — Authenticity Validator for Academia (SIH25029). Trust what you can verify.
+    </footer>
 
     <!-- Global Toast Container -->
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="/static/js/app.js?v=4.0"></script>
+  <script src="/static/js/app.js?v=8.0"></script>
 </body>
 </html>

@@ -207,13 +207,24 @@ async function handleInstitutionRegister() {
     const res = await API.registerInstitution(name, email, address);
     state.pendingEmail = email;
 
+    if (res.otp_debug) {
+      console.log(`%c[AVFA Real OTP]%c Verification Code: ${res.otp_debug}`, 'background: #243B53; color: #FFF; padding: 4px 8px; border-radius: 4px; font-weight: bold;', 'color: #C65D3B; font-weight: bold; font-size: 16px; margin-left: 8px;');
+    }
+
     const emailEl = document.getElementById('otp-target-email');
     if (emailEl) emailEl.textContent = email;
 
     showToast(res.message || 'OTP sent to official email', 'success');
     navigateTo('page-4-otp');
   } catch (err) {
-    showToast(`Registration failed: ${err.message}`, 'error');
+    if (err.message && err.message.toLowerCase().includes('already registered')) {
+      showToast(err.message, 'warning');
+      const loginEmail = document.getElementById('login-email');
+      if (loginEmail) loginEmail.value = email;
+      setTimeout(() => navigateTo('page-2-login'), 1800);
+    } else {
+      showToast(`Registration failed: ${err.message}`, 'error');
+    }
   }
 }
 
@@ -242,7 +253,12 @@ async function handleVerifyOtp() {
     return;
   }
 
-  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || 'registrar@nit.ac.in';
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim();
+  if (!email) {
+    showToast('Registration email not found. Please start registration first.', 'error');
+    navigateTo('page-3-register');
+    return;
+  }
 
   try {
     const res = await API.verifyOtp(email, code);
@@ -265,7 +281,12 @@ async function handleSetPassword() {
     return;
   }
 
-  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || 'registrar@nit.ac.in';
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim();
+  if (!email) {
+    showToast('Registration email not found. Please start registration first.', 'error');
+    navigateTo('page-3-register');
+    return;
+  }
 
   try {
     const res = await API.setPassword(email, pass, confirm);
@@ -375,7 +396,22 @@ async function handleIssueCertificate() {
     document.getElementById('issued-cert-sig').textContent = newCert.digital_signature;
     document.getElementById('issued-cert-status').innerHTML = `<span class="status-pill valid">${newCert.status}</span>`;
 
-    showToast('Certificate cryptographically signed and issued!', 'success');
+    // Handle generated PDF and Download Certificate button
+    if (newCert.pdf_url) {
+      const pdfCleanUrl = '/' + newCert.pdf_url.replace(/^\/+/, '');
+      const pdfFrame = document.getElementById('issued-pdf-frame');
+      const downloadBtn = document.getElementById('download-cert-btn');
+
+      if (pdfFrame) {
+        pdfFrame.src = pdfCleanUrl;
+      }
+      if (downloadBtn) {
+        downloadBtn.href = pdfCleanUrl;
+        downloadBtn.download = `${newCert.certificate_number}.pdf`;
+      }
+    }
+
+    showToast('Certificate cryptographically signed and PDF generated!', 'success');
     navigateTo('page-8-issued');
   } catch (err) {
     showToast(`Issuance failed: ${err.message}`, 'error');
@@ -501,6 +537,37 @@ async function handleQrImageUpload(input) {
   }
 }
 
+// Helper to parse Certificate ID from QR payload, URL, or plain string
+function extractCertIdentifier(payload) {
+  if (!payload) return '';
+  const text = payload.trim();
+
+  // 1. Direct Regex match for standard AVFA format (e.g. CERT-2026-B97DA3E5, AVFA-GIT-2024-001)
+  const match = text.match(/\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b/i);
+  if (match) {
+    return match[1].toUpperCase();
+  }
+
+  // 2. Query string parsing (e.g. ?cert_id=, ?certificate_number=, ?id=, ?verify=, ?hash=)
+  if (text.includes('?')) {
+    try {
+      const url = new URL(text.startsWith('http') ? text : `http://dummy.com/${text}`);
+      const param = url.searchParams.get('cert_id') ||
+                    url.searchParams.get('certificate_number') ||
+                    url.searchParams.get('certificate_id') ||
+                    url.searchParams.get('cert_num') ||
+                    url.searchParams.get('verify') ||
+                    url.searchParams.get('id') ||
+                    url.searchParams.get('hash');
+      if (param) return param.trim().toUpperCase();
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return text;
+}
+
 // Decoded QR payload handler -> Extracts Certificate ID and auto-verifies
 async function onQrCodeScanned(decodedText) {
   console.log('QR Code Decoded:', decodedText);
@@ -508,18 +575,7 @@ async function onQrCodeScanned(decodedText) {
   // Stop camera feed
   stopCameraScanner();
 
-  // Extract certificate number string from payload
-  // Handles plain string: "CERT-2026-F7BCAB87", "AVFA-GIT-2024-001", or URL: "http://.../?verify=CERT-2024-001"
-  let cleanCertNum = decodedText.trim();
-
-  if (cleanCertNum.includes('verify=')) {
-    const urlParams = new URLSearchParams(cleanCertNum.split('?')[1] || '');
-    cleanCertNum = urlParams.get('verify') || cleanCertNum;
-  } else if (cleanCertNum.includes('hash=')) {
-    const urlParams = new URLSearchParams(cleanCertNum.split('?')[1] || '');
-    cleanCertNum = urlParams.get('hash') || cleanCertNum;
-  }
-
+  const cleanCertNum = extractCertIdentifier(decodedText);
   showToast(`QR Scanned: ${cleanCertNum}`, 'success');
 
   // Auto-fill manual input as reference
@@ -532,11 +588,12 @@ async function onQrCodeScanned(decodedText) {
 
 // Manual verify button click handler
 async function handleVerifyByNumber() {
-  const certNum = document.getElementById('verify-cert-num').value.trim();
-  if (!certNum) {
+  const rawInput = document.getElementById('verify-cert-num').value.trim();
+  if (!rawInput) {
     showToast('Please enter or scan a certificate number', 'error');
     return;
   }
+  const certNum = extractCertIdentifier(rawInput);
   await executeVerificationByNumber(certNum);
 }
 
@@ -625,34 +682,34 @@ function renderVerificationResultTabA(res, queriedNumber) {
   }
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 800; color: var(--color-secondary);">Verification Result (QR / Certificate ID)</h2>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; color: var(--color-primary);">Verification Result (QR / Certificate ID)</h2>
       <span class="status-pill ${cert && cert.status === 'ISSUED' ? 'valid' : 'revoked'}">${cert ? cert.status : 'NOT_FOUND'}</span>
     </div>
 
     ${indicatorHtml}
 
     ${cert ? `
-      <div style="background: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.75rem;">
-        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">Credential Details</h4>
+      <div style="background: #FAF8F5; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; font-weight: 700;">Credential Details</h4>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.92rem;">
-          <div><span style="color: var(--color-text-dim);">Student Name:</span> <strong style="color: var(--color-secondary);">${cert.student_name}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-secondary);">${cert.student_roll_no}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Course / Degree:</span> <strong style="color: var(--color-secondary);">${cert.course_name}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Issue Date:</span> <strong style="color: var(--color-secondary);">${cert.issue_date}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Total Marks:</span> <strong style="color: var(--color-secondary);">${cert.marks || '485'}</strong></div>
-          <div><span style="color: var(--color-text-dim);">CGPA:</span> <strong style="color: var(--color-secondary);">${cert.cgpa || '9.82'}</strong></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.92rem;">
+          <div><span style="color: var(--color-text-muted);">Student Name:</span> <strong style="color: var(--color-text-main);">${cert.student_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-text-main);">${cert.student_roll_no}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Course / Degree:</span> <strong style="color: var(--color-text-main);">${cert.course_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Issue Date:</span> <strong style="color: var(--color-text-main);">${cert.issue_date}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Total Marks:</span> <strong style="color: var(--color-text-main);">${cert.marks || '485'}</strong></div>
+          <div><span style="color: var(--color-text-muted);">CGPA:</span> <strong style="color: var(--color-text-main);">${cert.cgpa || '9.82'}</strong></div>
         </div>
 
         <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
-          <div style="font-size: 0.72rem; color: var(--color-text-dim); text-transform: uppercase; font-weight: 700;">SHA-256 Hash Digest</div>
-          <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--color-text-muted); word-break: break-all; margin-top: 0.25rem;">${cert.sha256_hash}</div>
+          <div style="font-size: 0.72rem; color: var(--color-primary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">SHA-256 Hash Digest</div>
+          <div style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--color-text-muted); word-break: break-all; margin-top: 0.25rem;">${cert.sha256_hash}</div>
         </div>
       </div>
     ` : ''}
 
-    <div style="display: flex; gap: 1rem;">
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
       <button class="btn btn-primary btn-block" onclick="navigateTo('page-9-verify')">Scan Another Certificate</button>
       <button class="btn btn-secondary btn-block" onclick="navigateTo('page-1-landing')">Back to Home</button>
     </div>
@@ -664,9 +721,9 @@ function renderVerificationResultTabB(res) {
   const container = document.getElementById('result-container');
   if (!container) return;
 
-  const found = res.found;
-  const docMatches = res.document_matches_record;
-  const mismatches = res.mismatches || [];
+  const found = res.found !== false && res.status !== 'NOT_FOUND';
+  const mismatches = res.mismatches || res.field_mismatches || [];
+  const docMatches = Boolean(res.document_matches_record) && (res.status === 'ISSUED' || res.status === 'VALID') && mismatches.length === 0;
   const record = res.record;
 
   let indicatorHtml = '';
@@ -706,7 +763,7 @@ function renderVerificationResultTabB(res) {
   if (mismatches.length > 0) {
     mismatchTableHtml = `
       <div style="margin-bottom: 1.75rem;">
-        <h4 style="color: var(--color-danger); font-size: 0.88rem; margin-bottom: 0.75rem;">Field Mismatch Breakdown</h4>
+        <h4 style="color: var(--color-danger); font-size: 0.88rem; margin-bottom: 0.75rem; font-weight: 700;">Field Mismatch Breakdown</h4>
         <table class="mismatch-table">
           <thead>
             <tr>
@@ -730,40 +787,40 @@ function renderVerificationResultTabB(res) {
   }
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 800; color: var(--color-secondary);">Document Verification Result</h2>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; color: var(--color-primary);">Document Verification Result</h2>
       <span class="status-pill ${docMatches && mismatches.length === 0 ? 'valid' : 'revoked'}">${res.status || (docMatches ? 'ISSUED' : 'TAMPERED')}</span>
     </div>
 
     ${indicatorHtml}
 
-    <div style="background: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; font-size: 0.88rem;">
+    <div style="background: #FAF8F5; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; font-size: 0.88rem;">
       <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-        <span style="color: var(--color-text-dim);">Certificate Number:</span>
+        <span style="color: var(--color-text-muted);">Certificate Number:</span>
         <strong style="font-family: var(--font-mono); color: var(--color-gold);">${res.certificate_number || 'N/A'}</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span style="color: var(--color-text-dim);">Status:</span>
-        <strong style="color: var(--color-secondary);">${res.status || 'NOT_FOUND'}</strong>
+        <span style="color: var(--color-text-muted);">Status:</span>
+        <strong style="color: var(--color-primary);">${res.status || 'NOT_FOUND'}</strong>
       </div>
     </div>
 
     ${mismatchTableHtml}
 
     ${record ? `
-      <div style="background: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.75rem;">
-        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">Official Registered Record</h4>
+      <div style="background: #FAF8F5; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; font-weight: 700;">Official Registered Record</h4>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.92rem;">
-          <div><span style="color: var(--color-text-dim);">Student Name:</span> <strong style="color: var(--color-secondary);">${record.student_name}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-secondary);">${record.student_roll_no}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Course / Degree:</span> <strong style="color: var(--color-secondary);">${record.course_name}</strong></div>
-          <div><span style="color: var(--color-text-dim);">Issue Date:</span> <strong style="color: var(--color-secondary);">${record.issue_date}</strong></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.92rem;">
+          <div><span style="color: var(--color-text-muted);">Student Name:</span> <strong style="color: var(--color-text-main);">${record.student_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-text-main);">${record.student_roll_no}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Course / Degree:</span> <strong style="color: var(--color-text-main);">${record.course_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Issue Date:</span> <strong style="color: var(--color-text-main);">${record.issue_date}</strong></div>
         </div>
       </div>
     ` : ''}
 
-    <div style="display: flex; gap: 1rem;">
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
       <button class="btn btn-primary btn-block" onclick="navigateTo('page-9-verify')">Verify Another Document</button>
       <button class="btn btn-secondary btn-block" onclick="navigateTo('page-1-landing')">Back to Home</button>
     </div>

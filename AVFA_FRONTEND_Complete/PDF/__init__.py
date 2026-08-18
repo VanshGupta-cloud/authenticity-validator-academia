@@ -1,0 +1,1 @@
+from PDF.certificate_generator import Certificate, generate_certificate_pdf

@@ -1,3 +1,4 @@
+import os
 
 """
 Main SIH certificate verification pipeline.
@@ -20,7 +21,14 @@ Database integration will later replace the
 temporary trusted certificate record.
 """
 
+import sys
 from pathlib import Path
+
+# Ensure doc_processing directory is on path for direct script execution
+_DOC_DIR = str(Path(__file__).resolve().parent)
+if _DOC_DIR not in sys.path:
+    sys.path.insert(0, _DOC_DIR)
+
 
 import cv2
 
@@ -249,7 +257,7 @@ def main():
     """
 
     # Test certificate PDF.
-    pdf_path = "certificate.pdf"
+    pdf_path = "certificate.pdf" if os.path.exists("certificate.pdf") else str(Path(__file__).parent / "certificate.pdf")
 
     try:
 

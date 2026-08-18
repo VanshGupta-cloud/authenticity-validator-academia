@@ -1,44 +1,65 @@
-
 """
 Certificate Document Comparison
 
-Compares OCR-extracted certificate fields with
-trusted certificate fields using RapidFuzz.
+Compares OCR-extracted certificate fields with trusted
+certificate fields using RapidFuzz.
 
-The comparison fields are aligned with the
-AVFA database certificate schema.
+The comparison layer uses the certificate fields required
+for verification. Database-specific UUIDs are NOT compared
+directly.
 
-OCR fields:
-    Data extracted from the uploaded document.
+Institution handling:
+    OCR institution name
+        ->
+    FastAPI resolves certificate.institution_id
+        ->
+    institutions.name
+        ->
+    institution_name
 
-Trusted fields:
-    Values retrieved from PostgreSQL.
-
-Returns:
-    Field-level similarity scores
-    Overall similarity score
-    Matched fields
-    Total fields
+Course handling:
+    OCR degree_name
+        ->
+    FastAPI/comparison contract uses course_name
 """
 
-from rapidfuzz.fuzz import ratio
+try:
+    from rapidfuzz.fuzz import ratio
+except ImportError:
+    import difflib
+    def ratio(s1, s2):
+        return difflib.SequenceMatcher(None, str(s1).lower(), str(s2).lower()).ratio() * 100
 
 
 # --------------------------------------------------
 # FIELDS USED FOR RAPIDFUZZ
 # --------------------------------------------------
+#
+# These are the normalized fields expected by
+# compare_certificate().
+#
+# IMPORTANT:
+# institution_name must contain the institution's NAME,
+# not institution_id.
+#
+# course_name corresponds to certificates.course_name
+# in the PostgreSQL schema.
+# --------------------------------------------------
 
 COMPARISON_FIELDS = [
     "student_name",
     "student_roll_no",
-    "degree_name",
+    "course_name",
     "issue_date",
-    "institution",
+    "institution_name",
 ]
-
 
 DEFAULT_THRESHOLD = 85.0
 
+
+# --------------------------------------------------
+# NORMALIZATION
+# --------------------------------------------------
 
 def normalize(value):
     """
@@ -58,13 +79,17 @@ def normalize(value):
     )
 
 
+# --------------------------------------------------
+# FIELD COMPARISON
+# --------------------------------------------------
+
 def compare_field(
     extracted_value,
     stored_value,
 ):
     """
-    Compare one extracted field against
-    one trusted database field.
+    Compare one extracted field against one
+    trusted database field.
 
     Returns:
         Similarity score from 0 to 100.
@@ -84,16 +109,38 @@ def compare_field(
     )
 
 
+# --------------------------------------------------
+# CERTIFICATE COMPARISON
+# --------------------------------------------------
+
 def compare_certificate(
     extracted_certificate,
     stored_certificate,
 ):
     """
-    Compare OCR-extracted certificate data
-    against trusted certificate data.
+    Compare OCR-extracted certificate data against
+    trusted certificate data.
 
-    Both dictionaries should use the same
-    field names as COMPARISON_FIELDS.
+    Both dictionaries must use the fields listed
+    in COMPARISON_FIELDS.
+
+    Expected structure:
+
+        extracted_certificate = {
+            "student_name": "...",
+            "student_roll_no": "...",
+            "course_name": "...",
+            "issue_date": "...",
+            "institution_name": "..."
+        }
+
+        stored_certificate = {
+            "student_name": "...",
+            "student_roll_no": "...",
+            "course_name": "...",
+            "issue_date": "...",
+            "institution_name": "..."
+        }
 
     Returns:
         {
@@ -110,10 +157,13 @@ def compare_certificate(
 
         extracted_value = (
             extracted_certificate.get(field)
+            or (extracted_certificate.get("degree_name") if field == "course_name" else None)
+            or (extracted_certificate.get("institution") if field == "institution_name" else None)
+            or (extracted_certificate.get("degree") if field == "course_name" else None)
         )
 
-        stored_value = (
-            stored_certificate.get(field)
+        stored_value = stored_certificate.get(
+            field
         )
 
         field_scores[field] = compare_field(
@@ -125,8 +175,8 @@ def compare_certificate(
     # OVERALL SCORE
     # --------------------------------------------------
     #
-    # Every required field participates in the score.
-    # A missing field therefore contributes 0.
+    # Every required comparison field participates.
+    # A missing value therefore contributes 0.
     # --------------------------------------------------
 
     overall_score = (
@@ -155,6 +205,10 @@ def compare_certificate(
     }
 
 
+# --------------------------------------------------
+# DOCUMENT MATCH
+# --------------------------------------------------
+
 def is_document_match(
     comparison_result,
     threshold=DEFAULT_THRESHOLD,
@@ -166,7 +220,7 @@ def is_document_match(
     A document is considered matched only when:
 
     1. Overall score >= threshold
-    2. Every required field matches
+    2. Every required comparison field matches
     """
 
     return (
