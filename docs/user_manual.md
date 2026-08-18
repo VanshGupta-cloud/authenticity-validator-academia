@@ -257,7 +257,7 @@ uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 ### Q4: Can I test document tampering myself?
 **Answer:** Yes!
 1. Issue a certificate (e.g. 485 Marks, 9.7 CGPA) and download the PDF.
-2. Run `python test_verify_doc.py` to see how AVFA automatically detects altered marks (1025) and altered CGPA (5.00) and displays the mismatch breakdown.
+2. Run `python tests/test_verify_doc.py` to see how AVFA automatically detects altered marks (1025) and altered CGPA (5.00) and displays the mismatch breakdown.
 
 ---
 

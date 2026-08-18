@@ -1,3 +1,11 @@
+import os
+import sys
+
+# Ensure repository root is in sys.path
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 """
 End-to-End Automated Workflow Test for Authenticity Validator for Academia (AVFA).
 Tests all 10 frontend pages & backend routes end-to-end.
@@ -8,7 +16,7 @@ import uuid
 from fastapi.testclient import TestClient
 
 # Ensure root is in sys.path
-root_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 

@@ -129,11 +129,13 @@ authenticity-validator-academia/
 ├── requirements.txt                   # Complete Python dependencies
 ├── generate_keys.py                   # Generates 2048-bit RSA institutional keypairs
 ├── create_zip.py                      # Packaging script for release distributions
-├── test_workflow.py                   # Automated 10-page workflow validator
-├── test_e2e.py                        # 12-point end-to-end API & cryptography test suite
-├── test_verify_doc.py                 # Authentic vs tampered PDF upload test
-├── test_qr_urls.py                    # Multi-format QR URL decoder test
-├── test_email.py                      # OTP email delivery test script
+├── tests/                             # Automated Test Suites & Validation
+│   ├── __init__.py
+│   ├── test_workflow.py               # Automated 10-page workflow validator
+│   ├── test_e2e.py                    # 12-point end-to-end API & cryptography test suite
+│   ├── test_verify_doc.py             # Authentic vs tampered PDF upload test
+│   ├── test_qr_urls.py                # Multi-format QR URL decoder test
+│   └── test_email.py                  # OTP email delivery test script
 └── README.md                          # Project documentation
 ```
 
@@ -240,16 +242,16 @@ The repository contains automated test suites to ensure 100% test coverage acros
 
 ```bash
 # 1. Test full 10-page end-to-end user workflow:
-python test_workflow.py
+python tests/test_workflow.py
 
 # 2. Run 12-point capability test (Auth, Issue, Verify, Ledger, Revoke, RapidFuzz):
-python test_e2e.py
+python tests/test_e2e.py
 
 # 3. Test forensic document verification (authentic vs tampered PDF):
-python test_verify_doc.py
+python tests/test_verify_doc.py
 
 # 4. Test multi-format QR code URL parsing:
-python test_qr_urls.py
+python tests/test_qr_urls.py
 ```
 
 ---

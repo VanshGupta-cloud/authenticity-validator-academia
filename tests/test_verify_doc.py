@@ -1,3 +1,11 @@
+import os
+import sys
+
+# Ensure repository root is in sys.path
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 import urllib.request
 import json
 import uuid
@@ -39,7 +47,7 @@ cert_orig = Certificate(
     marks="1000",
     cgpa="4"
 )
-orig_pdf_path = "generated_certificates/CERT-2026-B97DA3E5.pdf"
+orig_pdf_path = os.path.join(root_dir, "generated_certificates", "CERT-2026-B97DA3E5.pdf")
 generate_certificate_pdf(cert_orig, "CERT-2026-B97DA3E5", orig_pdf_path, "NAME", "http://localhost:8000")
 
 res_orig = upload_pdf(orig_pdf_path)
@@ -63,7 +71,7 @@ cert_edited = Certificate(
     marks="1025",
     cgpa="5"
 )
-edited_pdf_path = "test_tampered_edited.pdf"
+edited_pdf_path = os.path.join(root_dir, "test_tampered_edited.pdf")
 generate_certificate_pdf(cert_edited, "CERT-2026-B97DA3E5", edited_pdf_path, "NAME", "http://localhost:8000")
 
 res_edited = upload_pdf(edited_pdf_path)
