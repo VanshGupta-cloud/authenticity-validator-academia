@@ -63,6 +63,8 @@ def build_canonical_payload(
     issue_date,
     institution_id,
     marks=None,
+    total_marks=None,
+    result_status=None,
     cgpa=None,
 ):
     def normalize_number(val):
@@ -83,6 +85,8 @@ def build_canonical_payload(
         "issue_date": str(issue_date),
         "institution_id": str(institution_id),
         "marks": normalize_number(marks),
+        "total_marks": normalize_number(total_marks),
+        "result_status": str(result_status).strip().upper() if result_status else "PASSED",
         "cgpa": normalize_number(cgpa),
     }
 

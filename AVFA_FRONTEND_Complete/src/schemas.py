@@ -101,7 +101,10 @@ class CertificateIssueRequest(BaseModel):
     course_name: str
     issue_date: Union[str, date]
     marks: Optional[Union[str, Decimal, float]] = None
+    marks_obtained: Optional[Union[str, Decimal, float]] = None
+    total_marks: Optional[Union[str, Decimal, float]] = None
     cgpa: Optional[Union[str, Decimal, float]] = None
+    result_status: Optional[str] = None
 
 
 class CertificateIssueResponse(BaseModel):
@@ -112,6 +115,9 @@ class CertificateIssueResponse(BaseModel):
     course_name: str
     issue_date: Union[date, str]
     marks: Optional[Union[Decimal, str, float]] = None
+    total_marks: Optional[Union[Decimal, str, float]] = None
+    percentage: Optional[Union[Decimal, str, float]] = None
+    result_status: Optional[str] = None
     cgpa: Optional[Union[Decimal, str, float]] = None
     sha256_hash: str
     digital_signature: str
@@ -218,6 +224,9 @@ class CertificateDetail(BaseModel):
     institution_name: Optional[str] = None
     issue_date: Optional[str] = None
     marks: Optional[str] = None
+    total_marks: Optional[str] = None
+    percentage: Optional[str] = None
+    result_status: Optional[str] = None
     cgpa: Optional[str] = None
     sha256_hash: str
     status: str

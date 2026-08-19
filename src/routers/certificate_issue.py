@@ -135,6 +135,52 @@ def issue_certificate(
             valid_issuer_id = str(u_chk.id)
 
     # ---------------------------------------------------------
+    # EVALUATE MARKS & PASS / FAIL JUDGMENT
+    # ---------------------------------------------------------
+    marks_obtained = None
+    total_marks = 500.0
+
+    raw_marks = payload.marks_obtained if payload.marks_obtained is not None else payload.marks
+    if raw_marks is not None:
+        raw_marks_str = str(raw_marks).strip()
+        if "/" in raw_marks_str:
+            parts = raw_marks_str.split("/")
+            m_match = re.search(r"(\d+(?:\.\d+)?)", parts[0])
+            t_match = re.search(r"(\d+(?:\.\d+)?)", parts[1])
+            if m_match:
+                marks_obtained = float(m_match.group(1))
+            if t_match:
+                total_marks = float(t_match.group(1))
+        else:
+            m_match = re.search(r"(\d+(?:\.\d+)?)", raw_marks_str)
+            if m_match:
+                marks_obtained = float(m_match.group(1))
+
+    if payload.total_marks is not None:
+        t_match = re.search(r"(\d+(?:\.\d+)?)", str(payload.total_marks))
+        if t_match:
+            total_marks = float(t_match.group(1))
+    elif marks_obtained is not None and marks_obtained <= 100.0 and (payload.marks is None or "/" not in str(payload.marks)):
+        total_marks = 100.0
+
+    percentage = (marks_obtained / total_marks) * 100.0 if (marks_obtained is not None and total_marks > 0) else None
+
+    # Automatic Pass/Fail determination
+    if payload.result_status:
+        result_status = payload.result_status.strip().upper()
+    elif percentage is not None:
+        if percentage >= 75.0:
+            result_status = "PASSED (FIRST CLASS WITH DISTINCTION)"
+        elif percentage >= 60.0:
+            result_status = "PASSED (FIRST CLASS)"
+        elif percentage >= 40.0:
+            result_status = "PASSED"
+        else:
+            result_status = "FAILED"
+    else:
+        result_status = "PASSED"
+
+    # ---------------------------------------------------------
     # BUILD CANONICAL CERTIFICATE PAYLOAD
     # ---------------------------------------------------------
 
@@ -144,7 +190,9 @@ def issue_certificate(
         degree_name=payload.course_name,
         issue_date=str(payload.issue_date),
         institution_id=str(institution_id),
-        marks=float(re.search(r"(\d+(?:\.\d+)?)", str(payload.marks)).group(1)) if payload.marks and re.search(r"(\d+(?:\.\d+)?)", str(payload.marks)) else None,
+        marks=marks_obtained,
+        total_marks=total_marks,
+        result_status=result_status,
         cgpa=float(re.search(r"(\d+(?:\.\d+)?)", str(payload.cgpa)).group(1)) if payload.cgpa and re.search(r"(\d+(?:\.\d+)?)", str(payload.cgpa)) else None,
     )
 
@@ -236,7 +284,9 @@ def issue_certificate(
         student_roll_no=payload.student_roll_no,
         course_name=payload.course_name,
         issue_date=parsed_date,
-        marks=float(re.search(r"(\d+(?:\.\d+)?)", str(payload.marks)).group(1)) if payload.marks and re.search(r"(\d+(?:\.\d+)?)", str(payload.marks)) else None,
+        marks=f"{marks_obtained:.2f}" if marks_obtained is not None else None,
+        total_marks=f"{total_marks:.2f}" if total_marks is not None else None,
+        result_status=result_status,
         cgpa=float(re.search(r"(\d+(?:\.\d+)?)", str(payload.cgpa)).group(1)) if payload.cgpa and re.search(r"(\d+(?:\.\d+)?)", str(payload.cgpa)) else None,
         sha256_hash=cert_hash,
         digital_signature=signature,
@@ -271,7 +321,9 @@ def issue_certificate(
         student_roll_no=payload.student_roll_no.strip(),
         course_name=payload.course_name.strip(),
         issue_date=str(payload.issue_date).strip(),
-        marks=float(re.search(r"(\d+(?:\.\d+)?)", str(payload.marks)).group(1)) if payload.marks and re.search(r"(\d+(?:\.\d+)?)", str(payload.marks)) else None,
+        marks=f"{marks_obtained:.2f}" if marks_obtained is not None else None,
+        total_marks=f"{total_marks:.2f}" if total_marks is not None else None,
+        result_status=result_status,
         cgpa=float(re.search(r"(\d+(?:\.\d+)?)", str(payload.cgpa)).group(1)) if payload.cgpa and re.search(r"(\d+(?:\.\d+)?)", str(payload.cgpa)) else None,
         sha256_hash=cert_hash,
         digital_signature=signature,
@@ -299,6 +351,9 @@ def issue_certificate(
         "course_name": new_cert.course_name,
         "issue_date": new_cert.issue_date,
         "marks": new_cert.marks,
+        "total_marks": new_cert.total_marks,
+        "percentage": round(percentage, 2) if percentage is not None else None,
+        "result_status": new_cert.result_status,
         "cgpa": new_cert.cgpa,
         "sha256_hash": new_cert.sha256_hash,
         "digital_signature": new_cert.digital_signature,

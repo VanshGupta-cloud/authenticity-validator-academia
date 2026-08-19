@@ -61,6 +61,8 @@ class Certificate(Base):
     issue_date = Column(String(50), nullable=False)
 
     marks = Column(String(50), nullable=True)
+    total_marks = Column(String(50), nullable=True, default="500")
+    result_status = Column(String(50), nullable=True, default="PASSED")
     cgpa = Column(String(50), nullable=True)
 
     sha256_hash = Column(String(64), unique=True, nullable=False)

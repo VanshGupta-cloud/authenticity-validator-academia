@@ -54,6 +54,8 @@ class Certificate:
     issue_date: date
 
     marks: Optional[str] = None
+    total_marks: Optional[str] = None
+    result_status: Optional[str] = None
     cgpa: Optional[str] = None
 
     sha256_hash: str = ""
@@ -373,16 +375,54 @@ def generate_certificate_pdf(
             ],
         ]
 
-        if certificate.marks is not None:
+        # Parse marks and total marks for presentation
+        marks_obtained_str = str(certificate.marks) if certificate.marks is not None else None
+        total_marks_str = str(certificate.total_marks) if certificate.total_marks is not None else None
+
+        if marks_obtained_str:
+            # Check if composite "450 / 500"
+            if "/" in marks_obtained_str and not total_marks_str:
+                display_marks = marks_obtained_str
+            elif total_marks_str:
+                try:
+                    m_val = float(re.search(r"(\d+(?:\.\d+)?)", marks_obtained_str).group(1))
+                    t_val = float(re.search(r"(\d+(?:\.\d+)?)", total_marks_str).group(1))
+                    pct = (m_val / t_val) * 100.0 if t_val > 0 else 0.0
+                    display_marks = f"{m_val:.2f} / {t_val:.2f} ({pct:.1f}%)"
+                except Exception:
+                    display_marks = f"{marks_obtained_str} / {total_marks_str}"
+            else:
+                display_marks = marks_obtained_str
+
             details.append(
                 [
                     Paragraph(
-                        "<b>Marks</b>",
+                        "<b>Marks (Obtained / Total)</b>",
                         label_style,
                     ),
-                    escape(str(certificate.marks)),
+                    escape(display_marks),
                 ]
             )
+
+        # Evaluation / Result Status (PASSED / FAILED)
+        eval_status = str(certificate.result_status or "PASSED").strip().upper()
+        if "PASS" in eval_status:
+            eval_html = f"<font color='#00875A'><b>{escape(eval_status)}</b></font>"
+        else:
+            eval_html = f"<font color='#DE350B'><b>{escape(eval_status)}</b></font>"
+
+        details.append(
+            [
+                Paragraph(
+                    "<b>Evaluation / Result</b>",
+                    label_style,
+                ),
+                Paragraph(
+                    eval_html,
+                    label_style,
+                ),
+            ]
+        )
 
         if certificate.cgpa is not None:
             details.append(

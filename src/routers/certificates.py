@@ -192,18 +192,18 @@ async def verify_certificate(
         try:
             body = await request.json()
             search_hash = body.get("queried_hash") or body.get("sha256_hash")
-            search_cert_num = body.get("certificate_number") or body.get("cert_id") or body.get("certificate_id")
+            search_cert_num = body.get("certificate_number") or body.get("cert_id") or body.get("certificate_id") or body.get("certificate_identifier") or body.get("cert_number")
         except Exception as e:
             print(f"[VERIFY DEBUG] json read exception: {e}", flush=True)
     elif "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
         form = await request.form()
         search_hash = form.get("queried_hash") or form.get("sha256_hash")
-        search_cert_num = form.get("certificate_number") or form.get("cert_id") or form.get("certificate_id")
+        search_cert_num = form.get("certificate_number") or form.get("cert_id") or form.get("certificate_id") or form.get("certificate_identifier") or form.get("cert_number")
     else:
         try:
             body = await request.json()
             search_hash = body.get("queried_hash") or body.get("sha256_hash")
-            search_cert_num = body.get("certificate_number") or body.get("cert_id") or body.get("certificate_id")
+            search_cert_num = body.get("certificate_number") or body.get("cert_id") or body.get("certificate_id") or body.get("certificate_identifier") or body.get("cert_number")
         except Exception:
             pass
 
@@ -292,7 +292,9 @@ async def verify_certificate(
             "course_name": cert.course_name,
             "institution_name": inst_name,
             "issue_date": cert.issue_date,
-            "marks": getattr(cert, "marks", "485") or "485",
+            "marks": getattr(cert, "marks", None) or "485",
+            "total_marks": getattr(cert, "total_marks", "500") or "500",
+            "result_status": getattr(cert, "result_status", "PASSED") or "PASSED",
             "cgpa": cert.cgpa or "9.82",
             "sha256_hash": cert.sha256_hash,
             "digital_signature": cert.digital_signature,
@@ -449,7 +451,9 @@ async def verify_document(
             "student_roll_no": cert.student_roll_no,
             "course_name": cert.course_name,
             "issue_date": cert.issue_date,
-            "marks": getattr(cert, "marks", "485") or "485",
+            "marks": getattr(cert, "marks", None) or "485",
+            "total_marks": getattr(cert, "total_marks", "500") or "500",
+            "result_status": getattr(cert, "result_status", "PASSED") or "PASSED",
             "cgpa": cert.cgpa or "9.82",
             "sha256_hash": cert.sha256_hash,
             "status": cert.status
@@ -620,6 +624,8 @@ def download_certificate_pdf(cert_identifier: str, db: Session = Depends(get_db)
             course_name=cert.course_name,
             issue_date=parsed_date,
             marks=getattr(cert, "marks", None),
+            total_marks=getattr(cert, "total_marks", None),
+            result_status=getattr(cert, "result_status", "PASSED"),
             cgpa=cert.cgpa,
             sha256_hash=cert.sha256_hash,
             digital_signature=cert.digital_signature,

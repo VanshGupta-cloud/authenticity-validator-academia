@@ -1,3 +1,34 @@
+// ============================================================================
+// LIVE PASS / FAIL EVALUATION PREVIEW
+// ============================================================================
+function updatePassFailPreview() {
+  const marksObtained = parseFloat(document.getElementById('issue-marks')?.value) || 0;
+  const totalMarks = parseFloat(document.getElementById('issue-total-marks')?.value) || 500;
+  const badge = document.getElementById('pass-fail-badge');
+  if (!badge) return;
+
+  if (totalMarks <= 0) {
+    badge.textContent = '⚠️ Invalid Total Marks (must be > 0)';
+    badge.style.color = '#DE350B';
+    return;
+  }
+
+  const pct = (marksObtained / totalMarks) * 100.0;
+  if (pct >= 75.0) {
+    badge.textContent = `🎯 Calculated: ${pct.toFixed(2)}% ➔ PASSED (First Class with Distinction)`;
+    badge.style.color = '#00875A';
+  } else if (pct >= 60.0) {
+    badge.textContent = `🎯 Calculated: ${pct.toFixed(2)}% ➔ PASSED (First Class)`;
+    badge.style.color = '#00875A';
+  } else if (pct >= 40.0) {
+    badge.textContent = `🎯 Calculated: ${pct.toFixed(2)}% ➔ PASSED`;
+    badge.style.color = '#00875A';
+  } else {
+    badge.textContent = `⚠️ Calculated: ${pct.toFixed(2)}% ➔ FAILED (Below 40% Passing Threshold)`;
+    badge.style.color = '#DE350B';
+  }
+}
+
 /**
  * AVFA — Authenticity Validator for Academia (Final Workflow)
  * 10-Page Application Controller, Midnight Academy Theme & Live Camera QR Scanner
@@ -368,16 +399,18 @@ async function handleIssueCertificate() {
   const course_name = document.getElementById('issue-course').value.trim();
   const issue_date = document.getElementById('issue-date').value;
   const marksVal = document.getElementById('issue-marks').value.trim();
+  const totalMarksVal = document.getElementById('issue-total-marks')?.value.trim() || '500';
   const cgpaVal = document.getElementById('issue-cgpa').value.trim();
 
   if (!student_name || !student_roll_no || !course_name || !issue_date || !marksVal || !cgpaVal) {
-    showToast('All credential parameters (including Total Marks and CGPA) are mandatory.', 'error');
+    showToast('All credential parameters (including Marks Obtained, Total Marks, and CGPA) are mandatory.', 'error');
     return;
   }
 
-  const marksInt = parseInt(marksVal, 10);
-  if (isNaN(marksInt)) {
-    showToast('Marks must be a valid integer score.', 'error');
+  const marksNum = parseFloat(marksVal);
+  const totalMarksNum = parseFloat(totalMarksVal);
+  if (isNaN(marksNum) || isNaN(totalMarksNum) || totalMarksNum <= 0) {
+    showToast('Marks Obtained and Total Marks must be valid positive numbers.', 'error');
     return;
   }
 
@@ -387,7 +420,9 @@ async function handleIssueCertificate() {
       student_roll_no,
       course_name,
       issue_date,
-      marks: String(marksInt),
+      marks: String(marksNum),
+      marks_obtained: String(marksNum),
+      total_marks: String(totalMarksNum),
       cgpa: cgpaVal
     });
 
@@ -698,7 +733,8 @@ function renderVerificationResultTabA(res, queriedNumber) {
           <div><span style="color: var(--color-text-muted);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-text-main);">${cert.student_roll_no}</strong></div>
           <div><span style="color: var(--color-text-muted);">Course / Degree:</span> <strong style="color: var(--color-text-main);">${cert.course_name}</strong></div>
           <div><span style="color: var(--color-text-muted);">Issue Date:</span> <strong style="color: var(--color-text-main);">${cert.issue_date}</strong></div>
-          <div><span style="color: var(--color-text-muted);">Total Marks:</span> <strong style="color: var(--color-text-main);">${cert.marks || '485'}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Marks (Obtained / Total):</span> <strong style="color: var(--color-text-main);">${cert.marks || '450'} / ${cert.total_marks || '500'}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Academic Evaluation:</span> <strong style="color: ${cert.result_status && cert.result_status.includes('FAIL') ? 'var(--color-danger)' : 'var(--color-success)'}; font-weight: 800;">${cert.result_status || 'PASSED'}</strong></div>
           <div><span style="color: var(--color-text-muted);">CGPA:</span> <strong style="color: var(--color-text-main);">${cert.cgpa || '9.82'}</strong></div>
         </div>
 
