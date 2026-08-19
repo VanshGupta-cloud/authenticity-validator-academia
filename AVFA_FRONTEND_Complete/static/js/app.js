@@ -117,9 +117,13 @@ const API = {
   },
 
   async revokeCertificate(certId, reason) {
+    const reasonStr = reason || 'Administrative credential audit failed - incomplete prerequisite credits';
     return this.request(`/certificates/${certId}/revoke`, {
       method: 'PATCH',
-      body: JSON.stringify({ reason: reason || 'Administrative credential audit failed - incomplete prerequisite credits' })
+      body: JSON.stringify({ 
+        revocation_reason: reasonStr,
+        reason: reasonStr 
+      })
     });
   },
 

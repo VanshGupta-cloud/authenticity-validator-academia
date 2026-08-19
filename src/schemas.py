@@ -249,7 +249,8 @@ class VerifyResponse(BaseModel):
 
 
 class RevokeRequest(BaseModel):
-    revocation_reason: str
+    revocation_reason: Optional[str] = None
+    reason: Optional[str] = None
 
 
 class RevokeResponse(BaseModel):

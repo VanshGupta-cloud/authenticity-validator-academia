@@ -536,8 +536,9 @@ def revoke_certificate(
             detail="Certificate is already revoked."
         )
 
+    reason_text = (payload.revocation_reason or payload.reason or "Administrative credential audit failed - incomplete prerequisite credits").strip()
     cert.status = "REVOKED"
-    cert.revocation_reason = payload.revocation_reason.strip()
+    cert.revocation_reason = reason_text
     cert.revoked_at = datetime.utcnow()
 
     db.commit()
