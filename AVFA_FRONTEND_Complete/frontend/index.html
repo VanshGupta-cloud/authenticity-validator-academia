@@ -486,8 +486,8 @@
                   Enter Certificate Number (Instant Search)
                 </label>
                 <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                  <input type="text" id="verify-cert-num" class="form-control" placeholder="e.g. CERT-2026-A4284F7F" style="font-family: var(--font-mono); font-weight: 600; font-size: 1rem;">
-                  <button type="button" class="btn btn-primary" onclick="handleManualVerify()" style="white-space: nowrap; padding: 0.65rem 1.25rem;">
+                  <input type="text" id="verify-cert-num" class="form-control" onkeydown="if(event.key==='Enter') { event.preventDefault(); handleVerifyByNumber(); }" placeholder="e.g. CERT-2026-A4284F7F" style="font-family: var(--font-mono); font-weight: 600; font-size: 1rem;">
+                  <button type="button" class="btn btn-primary" onclick="handleVerifyByNumber()" style="white-space: nowrap; padding: 0.65rem 1.25rem;">
                     Verify Authenticity
                   </button>
                 </div>

@@ -622,6 +622,7 @@ async function onQrCodeScanned(decodedText) {
 }
 
 // Manual verify button click handler
+window.handleManualVerify = handleVerifyByNumber;
 async function handleVerifyByNumber() {
   const rawInput = document.getElementById('verify-cert-num').value.trim();
   if (!rawInput) {
