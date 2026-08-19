@@ -116,6 +116,13 @@ const API = {
     return this.request(`/certificates/${query}`);
   },
 
+  async revokeCertificate(certId, reason) {
+    return this.request(`/certificates/${certId}/revoke`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason || 'Administrative credential audit failed - incomplete prerequisite credits' })
+    });
+  },
+
   // Page 7: Issue Certificate
   async issueCertificate(certData) {
     return this.request('/certificates/issue', {
