@@ -363,6 +363,17 @@ async def verify_document(
     # Step 5: Matching certificate exists in registry -> compare fields to detect any tampering
     mismatches = []
 
+    # Certificate Number Check
+    if extracted.get("certificate_number") and cert.certificate_number:
+        doc_cert_num = extracted["certificate_number"].strip().upper()
+        rec_cert_num = cert.certificate_number.strip().upper()
+        if doc_cert_num != rec_cert_num:
+            mismatches.append({
+                "field": "Certificate Number",
+                "document_value": doc_cert_num,
+                "record_value": rec_cert_num
+            })
+
     # Student Name Check
     if extracted.get("student_name"):
         doc_name = extracted["student_name"].strip().lower()
