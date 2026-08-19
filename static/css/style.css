@@ -1416,3 +1416,57 @@ footer, .site-footer {
 @media (max-width: 900px) {
   .nav-links-center { display: none; }
 }
+
+
+/* ==========================================================================
+   TEAM ASTRIX BRANDING & BLURRED MONUMENT AMBIENT HERO BACKGROUND
+   ========================================================================== */
+
+.astrix-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: radial-gradient(circle at 30% 30%, rgba(198, 93, 59, 0.3), rgba(36, 59, 83, 0.95));
+  border: 1.5px solid rgba(198, 93, 59, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(198, 93, 59, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-brand:hover .astrix-icon-box {
+  transform: rotate(45deg) scale(1.05);
+  box-shadow: 0 0 22px rgba(198, 93, 59, 0.6);
+}
+
+/* Front Page Collegiate Monument Ambient Hero Background */
+#page-1-landing {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-ambient-monument {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 520px;
+  background-image: url('/static/images/hero_monument_bg.jpg');
+  background-size: cover;
+  background-position: center 35%;
+  background-repeat: no-repeat;
+  opacity: 0.16;
+  filter: blur(6px) contrast(1.15);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+  z-index: 0;
+  transform: scale(1.03);
+}
+
+#page-1-landing .hero-container {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
