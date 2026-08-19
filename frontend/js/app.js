@@ -253,7 +253,7 @@ async function handleInstitutionRegister() {
       console.log(`%c[AVFA Real OTP]%c Verification Code: ${res.otp_debug}`, 'background: #243B53; color: #FFF; padding: 4px 8px; border-radius: 4px; font-weight: bold;', 'color: #C65D3B; font-weight: bold; font-size: 16px; margin-left: 8px;');
     }
 
-    const emailEl = document.getElementById('otp-target-email');
+    const emailEl = document.getElementById('otp-display-email') || document.getElementById('otp-target-email');
     if (emailEl) emailEl.textContent = email;
 
     showToast(res.message || 'OTP sent to official email', 'success');
@@ -315,15 +315,23 @@ async function handleVerifyOtp() {
 // PAGE 5: SET PASSWORD
 // ============================================================================
 async function handleSetPassword() {
-  const pass = document.getElementById('set-pass').value;
-  const confirm = document.getElementById('set-pass-confirm').value;
+  const passEl = document.getElementById('set-password-1') || document.getElementById('set-pass');
+  const confirmEl = document.getElementById('set-password-2') || document.getElementById('set-pass-confirm');
+
+  const pass = passEl ? passEl.value : '';
+  const confirm = confirmEl ? confirmEl.value : '';
+
+  if (!pass || pass.length < 6) {
+    showToast('Password must be at least 6 characters', 'error');
+    return;
+  }
 
   if (pass !== confirm) {
     showToast('Passwords do not match', 'error');
     return;
   }
 
-  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim();
+  const email = state.pendingEmail || document.getElementById('reg-email')?.value.trim() || document.getElementById('login-email')?.value.trim();
   if (!email) {
     showToast('Registration email not found. Please start registration first.', 'error');
     navigateTo('page-3-register');
@@ -332,8 +340,27 @@ async function handleSetPassword() {
 
   try {
     const res = await API.setPassword(email, pass, confirm);
-    showToast(res.message || 'Password set successfully! Please login.', 'success');
-    navigateTo('page-2-login');
+    showToast(res.message || 'Password set successfully! Logging in...', 'success');
+
+    // Auto-login directly to dashboard
+    try {
+      const loginRes = await API.loginInstitution(email, pass);
+      state.token = loginRes.access_token;
+      state.institution = {
+        id: loginRes.institution_id,
+        name: loginRes.institution_name || 'Academic Institution',
+        email: loginRes.official_email || email
+      };
+      localStorage.setItem('avfa_jwt', loginRes.access_token);
+      localStorage.setItem('avfa_institution', JSON.stringify(state.institution));
+      updateNavState();
+      showToast(`Welcome, ${state.institution.name}!`, 'success');
+      navigateTo('page-6-dashboard');
+    } catch (loginErr) {
+      const loginEmail = document.getElementById('login-email');
+      if (loginEmail) loginEmail.value = email;
+      navigateTo('page-2-login');
+    }
   } catch (err) {
     showToast(`Failed to set password: ${err.message}`, 'error');
   }
@@ -545,7 +572,7 @@ async function handleIssueCertificate() {
     if (newCert.pdf_url) {
       const pdfCleanUrl = '/' + newCert.pdf_url.replace(/^\/+/, '');
       const pdfFrame = document.getElementById('issued-pdf-frame');
-      const downloadBtn = document.getElementById('download-cert-btn');
+      const downloadBtn = document.getElementById('issued-pdf-download-btn') || document.getElementById('download-cert-btn');
 
       if (pdfFrame) {
         pdfFrame.src = pdfCleanUrl;
