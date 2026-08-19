@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AVFA — Authenticity Validator for Academia (SIH25029)</title>
+  <title>AVFA ΓÇö Authenticity Validator for Academia (SIH25029)</title>
   <meta name="description" content="Tamper-Proof Academic Document Issuance and Verification System. Built for SIH25029.">
-  <link rel="stylesheet" href="/static/css/style.css?v=21.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=5.0">
   <!-- HTML5 QR Code Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -13,7 +13,7 @@
 
   <div id="app">
 
-    <!-- Top Navigation Bar (Verity Navy Foundation with Georgia Serif Brand) -->
+    <!-- Top Navigation Bar -->
     <header class="navbar">
       <div class="nav-container">
         <div class="nav-brand" onclick="navigateTo('page-1-landing')">
@@ -22,22 +22,16 @@
           </div>
           <div class="brand-title">
             <span>AVFA ACADEMIA</span>
-            <span class="badge-sih">SIH25029 • Govt of Jharkhand</span>
+            <span class="badge-sih">SIH25029 ΓÇó Govt of Jharkhand</span>
           </div>
         </div>
 
         <div class="nav-actions">
-          <div class="network-status-chip">
-            <div class="status-dot"></div>
-            <span>Ledger Synchronized</span>
-          </div>
-
           <button id="nav-login-btn" class="btn btn-secondary btn-sm" onclick="navigateTo('page-2-login')">Institution Login</button>
-          <button id="nav-verify-btn" class="btn btn-accent btn-sm" onclick="navigateTo('page-9-verify')">Verify Certificate</button>
-          
-          <div id="nav-dashboard-btn-group" style="display: none; align-items: center; gap: 0.65rem;">
-            <button class="btn btn-accent btn-sm" onclick="navigateTo('page-6-dashboard')">Dashboard</button>
-            <button class="btn btn-secondary btn-sm" onclick="logoutInstitution()">Sign Out</button>
+          <button id="nav-verify-btn" class="btn btn-primary btn-sm" onclick="navigateTo('page-9-verify')">Verify Certificate</button>
+          <div id="nav-dashboard-btn-group" style="display: none; align-items: center; gap: 0.5rem;">
+            <button class="btn btn-gold btn-sm" onclick="navigateTo('page-6-dashboard')">Dashboard</button>
+            <button class="btn btn-ghost btn-sm" onclick="logoutInstitution()">Sign Out</button>
           </div>
         </div>
       </div>
@@ -47,196 +41,47 @@
     <main class="main-content">
 
       <!-- ====================================================================
-           PAGE 1 — LANDING (VERITY EDITORIAL THEME)
+           PAGE 1 ΓÇö LANDING
+           App name, one-line description
+           Button: "Institution Login" ΓåÆ Page 2
+           Button: "Verify a Certificate" ΓåÆ Page 9 (no login required)
            ==================================================================== -->
       <section id="page-1-landing" class="view-section active">
         <div class="hero-container">
-          
-          <div class="hero-grid">
-            <div>
-              <div class="tag">Authenticity Validator • SIH25029</div>
-              <h1 class="hero-title">
-                Trust what you can <span class="highlight">verify.</span>
-              </h1>
-              <p class="hero-subtitle">
-                A clear and mathematically robust way to check documents, academic certificates, and digital credentials using deterministic SHA-256 hashing, RSA-2048 sealing, and immutable ledger chains.
-              </p>
-
-              <div class="hero-buttons">
-                <button class="btn btn-primary btn-lg" onclick="navigateTo('page-9-verify')">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  Verify a Certificate
-                </button>
-                <button class="btn btn-accent btn-lg" onclick="navigateTo('page-2-login')">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                  Institution Portal
-                </button>
-              </div>
-            </div>
-
-            <!-- Right Column: Verification Panel Quick Start -->
-            <div class="panel">
-              <h2>Verify a file</h2>
-              <p style="font-size: 0.92rem; margin-top: 0.35rem;">Upload your academic certificate or scan a live QR code.</p>
-              
-              <div class="upload" onclick="navigateTo('page-9-verify')">
-                <div class="icon">↑</div>
-                <strong style="display: block; margin-top: 10px; font-size: 1.05rem; color: var(--primary);">Select your file or scan QR</strong>
-                <small style="color: var(--muted);">PDF, JPG, PNG and supported degree formats</small>
-              </div>
-              
-              <button class="btn btn-accent btn-block" style="margin-top: 1rem;" onclick="navigateTo('page-9-verify')">
-                Open Public Verifier Terminal
-              </button>
-            </div>
+          <div class="hero-badge">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Tamper-Proof Verification Protocol ΓÇó SIH25029
           </div>
+          <h1 class="hero-title">
+            Authenticity Validator for <span class="highlight">Academia</span>
+          </h1>
+          <p class="hero-subtitle">
+            Securely issue, manage, and verify authentic academic certificates using SHA-256 cryptographic hashing, digital signatures, and automated document integrity auditing.
+          </p>
 
-          <!-- ====================================================================
-               SUBTLE ANIMATED FLOWING CIRCUIT BACKGROUND BRIDGE
-               ==================================================================== -->
-          <div class="flowing-circuit-section">
-            <svg class="flowing-circuit-svg" viewBox="0 0 1400 160" preserveAspectRatio="none" fill="none">
-              <defs>
-                <linearGradient id="circuitPillGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#243B53" />
-                  <stop offset="100%" stop-color="#C65D3B" />
-                </linearGradient>
-                <linearGradient id="circuitPillGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#334E68" />
-                  <stop offset="100%" stop-color="#E07A5F" />
-                </linearGradient>
-                <filter id="circuitGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#C65D3B" flood-opacity="0.3" />
-                </filter>
-              </defs>
-
-              <!-- Line 1: Top flowing curve with leading dashed trail -->
-              <path id="circuitPath1" d="M 0,35 C 380,35 480,35 560,55 C 640,75 750,75 1400,75" stroke="#DDD7CF" stroke-width="1.5" />
-              <path d="M 0,35 L 200,35" stroke="#C7BFB5" stroke-width="1.5" stroke-dasharray="4, 6" />
-
-              <!-- Line 2: Middle descending wave -->
-              <path id="circuitPath2" d="M 0,85 C 420,85 540,85 620,110 C 700,135 840,135 1400,135" stroke="#DDD7CF" stroke-width="1.5" />
-              <path d="M 0,85 L 240,85" stroke="#C7BFB5" stroke-width="1.5" stroke-dasharray="3, 5" />
-
-              <!-- Line 3: Bottom rising wave -->
-              <path id="circuitPath3" d="M 0,135 C 320,135 460,135 530,95 C 600,55 720,35 1400,35" stroke="#DDD7CF" stroke-width="1.5" />
-              <path d="M 0,135 L 180,135" stroke="#C7BFB5" stroke-width="1.5" stroke-dasharray="4, 6" />
-
-              <!-- Line 4: Center bridging connector -->
-              <path id="circuitPath4" d="M 0,60 C 500,60 620,60 710,60 C 800,60 920,105 1400,105" stroke="#DDD7CF" stroke-width="1.5" />
-
-              <!-- Moving Marker 1: Burnt Orange Diamond (Rhombus rotated 45°) on Path 1 -->
-              <g filter="url(#circuitGlow)">
-                <polygon points="0,-6 6,0 0,6 -6,0" fill="#C65D3B">
-                  <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite" />
-                </polygon>
-                <animateMotion dur="10s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
-                  <mpath href="#circuitPath1" />
-                </animateMotion>
-              </g>
-
-              <!-- Moving Marker 2: Navy to Burnt Orange Gradient Capsule on Path 2 -->
-              <g>
-                <rect x="-18" y="-6" width="36" height="12" rx="6" fill="url(#circuitPillGrad1)" />
-                <polygon points="-16,-4 -11,0 -16,4" fill="#102A43" />
-                <animateMotion dur="13s" begin="-4s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
-                  <mpath href="#circuitPath2" />
-                </animateMotion>
-              </g>
-
-              <!-- Moving Marker 3: Deep Oxford Navy Diamond on Path 3 -->
-              <g>
-                <polygon points="0,-6 6,0 0,6 -6,0" fill="#243B53" />
-                <animateMotion dur="8.5s" begin="-2s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
-                  <mpath href="#circuitPath3" />
-                </animateMotion>
-              </g>
-
-              <!-- Moving Marker 4: Terracotta Capsule on Path 4 -->
-              <g>
-                <rect x="-14" y="-5" width="28" height="10" rx="5" fill="url(#circuitPillGrad2)" />
-                <animateMotion dur="16s" begin="-8s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
-                  <mpath href="#circuitPath4" />
-                </animateMotion>
-              </g>
-            </svg>
-
-            <div class="flowing-circuit-label">
-              <span>Deterministic Cryptographic Ledger In Motion</span>
-            </div>
+          <div class="hero-buttons">
+            <button class="btn btn-primary btn-lg" onclick="navigateTo('page-2-login')">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+              Institution Login
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="navigateTo('page-9-verify')">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Verify a Certificate
+            </button>
           </div>
-
-          <!-- ====================================================================
-               SIMPLE 3-STEP PROCESS SECTION
-               ==================================================================== -->
-          <div class="section-block">
-            <div class="tag">Simple process</div>
-            <h2 class="section-title">Three steps. One clear result.</h2>
-            
-            <div class="cards-grid">
-              <div class="card">
-                <div class="num">1</div>
-                <h3>Upload or Scan</h3>
-                <p>Choose the document you want to check, or point your camera at the high-density QR code.</p>
-              </div>
-
-              <div class="card">
-                <div class="num">2</div>
-                <h3>Cryptographic Audit</h3>
-                <p>The system computes deterministic SHA-256 hashes and inspects digital signatures instantly.</p>
-              </div>
-
-              <div class="card">
-                <div class="num">3</div>
-                <h3>Receive Verdict</h3>
-                <p>Receive a clear verification result with full institutional issuer details and timestamp proofs.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- ====================================================================
-               CORE ARCHITECTURAL TECH STACK
-               ==================================================================== -->
-          <div class="section-block" style="margin-top: 3.5rem;">
-            <div class="tag">System Architecture</div>
-            <h2 class="section-title">Core Technology Ecosystem</h2>
-            
-            <div class="cards-grid" style="grid-template-columns: repeat(4, 1fr);">
-              <div class="card">
-                <div class="num" style="background: var(--primary);">🔒</div>
-                <h3 style="font-size: 1.15rem;">Backend Core</h3>
-                <p style="font-size: 0.88rem; margin-top: 0.35rem;">Python 3.11, FastAPI ASGI, PyCryptodome RSA-2048 & SHA-256.</p>
-              </div>
-
-              <div class="card">
-                <div class="num" style="background: var(--accent);">👁️</div>
-                <h3 style="font-size: 1.15rem;">AI Vision & OCR</h3>
-                <p style="font-size: 0.88rem; margin-top: 0.35rem;">EasyOCR PyTorch, OpenCV deskewing, RapidFuzz 85%+ validation.</p>
-              </div>
-
-              <div class="card">
-                <div class="num" style="background: #334E68;">⚡</div>
-                <h3 style="font-size: 1.15rem;">Client Engine</h3>
-                <p style="font-size: 0.88rem; margin-top: 0.35rem;">Vanilla ES6+, Html5-QRCode camera scanner, zero heavy libraries.</p>
-              </div>
-
-              <div class="card">
-                <div class="num" style="background: #B45309;">🛡️</div>
-                <h3 style="font-size: 1.15rem;">Ledger & Security</h3>
-                <p style="font-size: 0.88rem; margin-top: 0.35rem;">SQLAlchemy ORM, Resend Live OTP email service, immutable audit logs.</p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 2 — INSTITUTION LOGIN
+           PAGE 2 ΓÇö INSTITUTION LOGIN
+           Fields: official_email, password
+           Button: "Login"
+           Link: "New institution? Register here" ΓåÆ Page 3
+           On submit ΓåÆ POST /institutions/login ΓåÆ stores JWT, redirects to Dashboard (Page 6)
            ==================================================================== -->
       <section id="page-2-login" class="view-section">
         <div class="auth-wrapper">
-          <div class="panel auth-card">
+          <div class="midnight-card auth-card">
             <button class="auth-back-btn" onclick="navigateTo('page-1-landing')">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
               Back to Home
@@ -255,10 +100,10 @@
 
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="login-password" class="form-control" placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó" required>
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;">Login</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Login</button>
             </form>
 
             <div class="auth-footer-links">
@@ -269,11 +114,14 @@
       </section>
 
       <!-- ====================================================================
-           PAGE 3 — INSTITUTION REGISTRATION
+           PAGE 3 ΓÇö INSTITUTION REGISTRATION
+           Fields: name, official_email, address (optional)
+           Button: "Register"
+           On submit ΓåÆ POST /institutions/register ΓåÆ redirect to Page 4
            ==================================================================== -->
       <section id="page-3-register" class="view-section">
         <div class="auth-wrapper">
-          <div class="panel auth-card">
+          <div class="midnight-card auth-card">
             <button class="auth-back-btn" onclick="navigateTo('page-2-login')">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
               Back to Login
@@ -300,7 +148,7 @@
                 <input type="text" id="reg-address" class="form-control" placeholder="Campus Address, City, State">
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;">Register</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Register</button>
             </form>
 
             <div class="auth-footer-links">
@@ -311,11 +159,15 @@
       </section>
 
       <!-- ====================================================================
-           PAGE 4 — OTP VERIFICATION
+           PAGE 4 ΓÇö OTP VERIFICATION
+           Field: otp_code (6-digit input)
+           Note: "Code expires in 10 minutes"
+           Button: "Verify"
+           On submit ΓåÆ POST /institutions/verify-otp ΓåÆ redirect to Page 5
            ==================================================================== -->
       <section id="page-4-otp" class="view-section">
         <div class="auth-wrapper">
-          <div class="panel auth-card">
+          <div class="midnight-card auth-card">
             <button class="auth-back-btn" onclick="navigateTo('page-3-register')">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
               Back
@@ -323,7 +175,7 @@
 
             <div class="auth-header">
               <h2>Verify OTP</h2>
-              <p>Enter the 6-digit verification code sent to <strong id="otp-target-email" style="color: var(--accent);">your official email</strong>.</p>
+              <p>Enter the 6-digit verification code sent to <strong id="otp-target-email" style="color: var(--color-gold);">your official email</strong>.</p>
             </div>
 
             <form id="form-otp" onsubmit="event.preventDefault(); handleVerifyOtp();">
@@ -336,22 +188,25 @@
                 <input type="text" class="otp-box" maxlength="1" id="otp-6" oninput="handleOtpInput(this, null)">
               </div>
 
-              <div style="font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 1.5rem;">
-                ⏱ Code expires in 10 minutes. Please check your inbox.
+              <div style="font-size: 0.8rem; color: var(--color-text-muted); text-align: center; margin-bottom: 1.5rem;">
+                ΓÅ▒ Code expires in 10 minutes. Please enter the 6-digit code sent to your email.
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg">Verify & Proceed</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg">Verify</button>
             </form>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 5 — SET PASSWORD
+           PAGE 5 ΓÇö SET PASSWORD
+           Fields: password, confirm password
+           Button: "Set Password"
+           On submit ΓåÆ POST /institutions/set-password ΓåÆ redirect to Page 2 (Login)
            ==================================================================== -->
       <section id="page-5-password" class="view-section">
         <div class="auth-wrapper">
-          <div class="panel auth-card">
+          <div class="midnight-card auth-card">
             <div class="auth-header">
               <h2>Set Password</h2>
               <p>Configure a secure password for your institution account.</p>
@@ -360,22 +215,24 @@
             <form id="form-password" onsubmit="event.preventDefault(); handleSetPassword();">
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" id="set-pass" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="set-pass" class="form-control" placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Confirm Password</label>
-                <input type="password" id="set-pass-confirm" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="set-pass-confirm" class="form-control" placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó" required>
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;">Set Password</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Set Password</button>
             </form>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 6 — DASHBOARD
+           PAGE 6 ΓÇö DASHBOARD (POST-LOGIN)
+           Shows: institution name, total certificates issued, recent certificates list
+           Buttons: "Issue New Certificate" ΓåÆ Page 7, "Verify a Certificate" ΓåÆ Page 9
            ==================================================================== -->
       <section id="page-6-dashboard" class="view-section">
         <div class="page-wrapper">
@@ -390,42 +247,42 @@
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 Issue New Certificate
               </button>
-              <button class="btn btn-accent" onclick="navigateTo('page-9-verify')">
+              <button class="btn btn-secondary" onclick="navigateTo('page-9-verify')">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Verify a Certificate
               </button>
             </div>
           </div>
 
-          <!-- Counter Stats Cards -->
+          <!-- Total Certificates Issued Counter -->
           <div class="stats-row">
             <div class="stat-box">
-              <div class="stat-icon" style="background: var(--primary); color: white;">
+              <div class="stat-icon gold">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               </div>
               <div>
-                <div class="stat-num" id="dash-total-issued">0</div>
-                <div class="stat-label">Total Issued</div>
+                <div class="stat-num" id="dash-total-issued">128</div>
+                <div class="stat-label">Total Certificates Issued</div>
               </div>
             </div>
 
             <div class="stat-box">
-              <div class="stat-icon" style="background: var(--color-success); color: white;">
+              <div class="stat-icon green">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               </div>
               <div>
-                <div class="stat-num" id="dash-active-certs">0</div>
+                <div class="stat-num" id="dash-active-certs">124</div>
                 <div class="stat-label">Active Credentials</div>
               </div>
             </div>
 
             <div class="stat-box">
-              <div class="stat-icon" style="background: var(--accent); color: white;">
+              <div class="stat-icon red">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
               </div>
               <div>
-                <div class="stat-num" id="dash-revoked-certs">0</div>
-                <div class="stat-label">Revoked Records</div>
+                <div class="stat-num" id="dash-revoked-certs">4</div>
+                <div class="stat-label">Revoked Credentials</div>
               </div>
             </div>
           </div>
@@ -433,7 +290,7 @@
           <!-- Recent Certificates List Table -->
           <div class="table-card">
             <div class="table-header">
-              <h3 style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: var(--primary);">Recent Certificates</h3>
+              <h3 style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: var(--color-secondary);">Recent Certificates</h3>
               <input type="text" id="dash-search-input" class="form-control" placeholder="Search certificates..." style="max-width: 260px;" oninput="handleDashboardSearch(this.value)">
             </div>
 
@@ -459,7 +316,11 @@
       </section>
 
       <!-- ====================================================================
-           PAGE 7 — ISSUE NEW CERTIFICATE
+           PAGE 7 ΓÇö ISSUE NEW CERTIFICATE
+           Fields: student_name, student_roll_no, course_name, issue_date, marks (optional), cgpa (optional)
+           Button: "Issue Certificate"
+           Requires: Authorization: Bearer <token> header (JWT from login)
+           On submit ΓåÆ POST /certificates/issue ΓåÆ Redirect to Page 8
            ==================================================================== -->
       <section id="page-7-issue" class="view-section">
         <div class="page-wrapper" style="max-width: 720px;">
@@ -468,9 +329,9 @@
             Back to Dashboard
           </button>
 
-          <div class="panel">
+          <div class="midnight-card">
             <div class="auth-header">
-              <h2>Issue Academic Certificate</h2>
+              <h2>Issue New Academic Certificate</h2>
               <p>Fill out the graduate record details below to cryptographically sign and anchor the certificate.</p>
             </div>
 
@@ -507,27 +368,33 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">Issue & Seal Certificate</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">Issue Certificate</button>
             </form>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 8 — CERTIFICATE ISSUED (CONFIRMATION)
+           PAGE 8 ΓÇö CERTIFICATE ISSUED (CONFIRMATION)
+           Shows: certificate_number, sha256_hash, digital_signature, status
+           Buttons: "Issue Another" ΓåÆ Page 7, "Back to Dashboard" ΓåÆ Page 6
            ==================================================================== -->
       <section id="page-8-issued" class="view-section">
         <div class="page-wrapper" style="max-width: 820px;">
-          <div class="panel">
-            <div class="auth-header" style="text-align: center;">
-              <div class="icon" style="background: var(--color-success); margin-bottom: 1rem;">✓</div>
-              <h2>Certificate Issued Successfully</h2>
-              <p>The academic credential has been cryptographically signed and anchored.</p>
+          <div class="confirmation-card">
+            <div class="confirmation-header">
+              <div class="success-badge-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <h2 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 800; color: var(--color-secondary);">Certificate Issued Successfully</h2>
+              <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.35rem;">
+                The academic credential has been cryptographically signed and anchored.
+              </p>
             </div>
 
             <div class="crypto-field-box">
               <div class="crypto-field-label">Certificate Number</div>
-              <div class="crypto-field-val" id="issued-cert-num" style="font-size: 1.15rem; font-weight: 700; color: var(--primary);">CERT-2026-XXXX</div>
+              <div class="crypto-field-val" id="issued-cert-num" style="font-size: 1.15rem; font-weight: 700; color: var(--color-gold);">CERT-2026-XXXX</div>
             </div>
 
             <div class="crypto-field-box">
@@ -546,13 +413,13 @@
             </div>
 
             <!-- Generated PDF Preview Container -->
-            <div id="issued-pdf-container" style="margin-top: 1.5rem; border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; background: var(--white); box-shadow: var(--shadow-sm);">
-              <div style="background: var(--primary); color: var(--white); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 0.5rem;">
+            <div id="issued-pdf-container" style="margin-top: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--white); box-shadow: var(--shadow-card);">
+              <div style="background: var(--color-primary); color: var(--white); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--white); font-weight: 600; font-size: 0.9rem;">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--accent);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--color-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                   <span>Official AVFA Certificate PDF (Embedded QR Included)</span>
                 </div>
-                <a id="download-cert-btn" href="#" class="btn btn-accent btn-sm" download="certificate.pdf" target="_blank">
+                <a id="download-cert-btn" href="#" class="btn btn-gold btn-sm" download="certificate.pdf" target="_blank">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                   Download Certificate
                 </a>
@@ -561,15 +428,23 @@
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
-              <button class="btn btn-primary btn-block" onclick="navigateTo('page-7-issue')">Issue Another</button>
-              <button class="btn btn-secondary btn-block" onclick="navigateTo('page-6-dashboard')">Back to Dashboard</button>
+              <button class="btn btn-primary btn-block" onclick="navigateTo('page-7-issue')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Issue Another
+              </button>
+              <button class="btn btn-secondary btn-block" onclick="navigateTo('page-6-dashboard')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Back to Dashboard
+              </button>
             </div>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 9 — VERIFY CERTIFICATE (LIVE CAMERA QR SCANNER & TAB B)
+           PAGE 9 ΓÇö VERIFY CERTIFICATE (LIVE CAMERA QR SCANNER & TAB B)
+           Tab A: Scan QR Code (Live Camera Video Feed + QR Image Upload)
+           Tab B: Upload Document (PDF File Upload)
            ==================================================================== -->
       <section id="page-9-verify" class="view-section">
         <div class="page-wrapper" style="max-width: 680px;">
@@ -578,7 +453,7 @@
             Back to Home
           </button>
 
-          <div class="panel">
+          <div class="midnight-card">
             <div class="auth-header">
               <h2>Verify Academic Certificate</h2>
               <p>Scan a QR code via live camera or upload a certificate PDF to verify authenticity.</p>
@@ -586,17 +461,17 @@
 
             <!-- Two Tabs -->
             <div class="verify-nav-tabs">
-              <button class="tab-btn active" id="tab-btn-a" onclick="switchVerifyTab('A')">📷 Tab A: Scan QR Code (Camera)</button>
-              <button class="tab-btn" id="tab-btn-b" onclick="switchVerifyTab('B')">📄 Tab B: Upload Document (PDF)</button>
+              <button class="tab-btn active" id="tab-btn-a" onclick="switchVerifyTab('A')">≡ƒô╖ Tab A: Scan QR Code (Camera)</button>
+              <button class="tab-btn" id="tab-btn-b" onclick="switchVerifyTab('B')">≡ƒôä Tab B: Upload Document (PDF)</button>
             </div>
 
             <!-- Tab A: Live Camera QR Scanner -->
             <div id="verify-content-a">
               <div class="qr-scanner-wrapper">
-                <div style="font-size: 0.9rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--color-secondary); margin-bottom: 0.5rem;">
                   Point your camera at the certificate QR code
                 </div>
-                <div style="font-size: 0.78rem; color: var(--muted);">
+                <div style="font-size: 0.78rem; color: var(--color-text-muted);">
                   The QR code contains the secure certificate identifier and is decoded instantly in real-time.
                 </div>
 
@@ -605,10 +480,10 @@
                   <!-- HTML5 QR Code Container -->
                   <div id="qr-reader" style="width: 100%; height: 100%;"></div>
                   
-                  <div id="scanner-idle-placeholder" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; color: var(--muted);">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 48px; height: 48px; color: var(--accent);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--primary);">Camera Scanner Inactive</div>
-                    <button type="button" class="btn btn-accent btn-sm" onclick="startCameraScanner()">
+                  <div id="scanner-idle-placeholder" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; color: var(--color-text-muted);">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 48px; height: 48px; color: var(--color-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--color-secondary);">Camera Scanner Inactive</div>
+                    <button type="button" class="btn btn-gold btn-sm" onclick="startCameraScanner()">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
                       Start Camera Scanner
                     </button>
@@ -622,14 +497,20 @@
 
                 <!-- Camera Controls -->
                 <div class="camera-controls-bar" id="camera-controls" style="display: none;">
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="stopCameraScanner()">Stop Camera</button>
-                  <button type="button" class="btn btn-outline btn-sm" onclick="switchCameraFacing()">Switch Camera</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="stopCameraScanner()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                    Stop Camera
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="switchCameraFacing()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Switch Camera
+                  </button>
                 </div>
 
                 <!-- QR Image File Option -->
-                <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.85rem; color: var(--muted);">
+                <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted);">
                   <span>Or upload a QR code image:</span>
-                  <label class="btn btn-outline btn-sm" style="color: var(--accent); cursor: pointer;">
+                  <label class="btn btn-ghost btn-sm" style="color: var(--color-gold); cursor: pointer;">
                     Browse Image
                     <input type="file" id="qr-image-file" style="display: none;" accept="image/*" onchange="handleQrImageUpload(this)">
                   </label>
@@ -638,7 +519,7 @@
                 <!-- Collapsible Manual Input Accordion -->
                 <div class="manual-entry-accordion">
                   <details>
-                    <summary style="font-size: 0.85rem; color: var(--muted); cursor: pointer; user-select: none;">
+                    <summary style="font-size: 0.85rem; color: var(--color-text-dim); cursor: pointer; user-select: none;">
                       Enter certificate number manually (fallback)
                     </summary>
                     <div style="margin-top: 1rem;">
@@ -658,10 +539,10 @@
             <!-- Tab B: PDF Document Upload -->
             <div id="verify-content-b" style="display: none;">
               <form id="form-verify-b" onsubmit="event.preventDefault(); handleVerifyByDocument();">
-                <div class="upload" id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click();">
-                  <div class="icon">↑</div>
-                  <strong style="display: block; font-size: 1.05rem; color: var(--primary);">Click or Drag & Drop Academic Document (PDF)</strong>
-                  <small id="selected-file-name" style="color: var(--accent); margin-top: 0.5rem;">Only PDF files accepted</small>
+                <div class="dropzone-pdf" id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click();">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 48px; height: 48px; color: var(--color-gold); margin-bottom: 0.75rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                  <div style="font-weight: 600; color: var(--color-secondary);">Click or Drag & Drop Academic Document (PDF)</div>
+                  <div id="selected-file-name" style="font-size: 0.8rem; color: var(--color-gold); margin-top: 0.5rem;">Only PDF files accepted</div>
                   <input type="file" id="pdf-file-input" style="display: none;" accept=".pdf" onchange="handlePdfFileSelected(this)">
                 </div>
 
@@ -673,7 +554,15 @@
       </section>
 
       <!-- ====================================================================
-           PAGE 10 — VERIFICATION RESULT
+           PAGE 10 ΓÇö VERIFICATION RESULT
+           Via certificate number / QR Scanner (Tab A):
+             Two indicators: "Record Authentic" (Γ£à/ΓÜá∩╕Å), tamper warning if tamper_detected: true
+             Shows: student_name, student_roll_no, course_name, issue_date, marks, cgpa, status
+           Via document upload (Tab B):
+             Shows: found status
+             If found: "Document Matches Record" (Γ£à/ΓÜá∩╕Å from document_matches_record)
+             If mismatches exist: list each showing document value vs. record value side by side
+             Shows: certificate_number, status
            ==================================================================== -->
       <section id="page-10-result" class="view-section">
         <div class="page-wrapper" style="max-width: 820px;">
@@ -685,21 +574,15 @@
 
     </main>
  
-    <!-- Editorial Footer (Deep Navy Background) -->
+    <!-- Editorial Footer -->
     <footer class="site-footer">
-      <div class="nav-container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>© 2026 AVFA Academia — Authenticity Validator for Academia (SIH25029). Trust what you can verify.</div>
-        <div style="display: flex; gap: 1.5rem;">
-          <span>Cryptographically Sealed</span>
-          <span>Zero-Knowledge Verification</span>
-        </div>
-      </div>
+      ┬⌐ 2026 AVFA Academia ΓÇö Authenticity Validator for Academia (SIH25029). Trust what you can verify.
     </footer>
 
     <!-- Global Toast Container -->
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="/static/js/app.js?v=21.0"></script>
+  <script src="/static/js/app.js?v=8.0"></script>
 </body>
 </html>

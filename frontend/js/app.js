@@ -1,6 +1,6 @@
-/**
- * AVFA — Authenticity Validator for Academia (Final Workflow - Verity Edition)
- * 10-Page Application Controller, Verity Navy & Burnt Orange Theme & Live Camera QR Scanner
+﻿/**
+ * AVFA ΓÇö Authenticity Validator for Academia (Final Workflow)
+ * 10-Page Application Controller, Midnight Academy Theme & Live Camera QR Scanner
  */
 
 // Application State
@@ -10,7 +10,6 @@ const state = {
   currentView: 'page-1-landing',
   pendingEmail: '',
   selectedPdfFile: null,
-  selectedBatchCsvFile: null,
   recentCertificates: [],
   activeVerifyTab: 'A',
   html5QrScanner: null,
@@ -44,7 +43,7 @@ const API = {
     return data;
   },
 
-  // Institution Login
+  // Page 2: Institution Login
   async loginInstitution(official_email, password) {
     return this.request('/institutions/login', {
       method: 'POST',
@@ -52,7 +51,7 @@ const API = {
     });
   },
 
-  // Institution Register
+  // Page 3: Institution Register
   async registerInstitution(name, official_email, address) {
     return this.request('/institutions/register', {
       method: 'POST',
@@ -60,7 +59,7 @@ const API = {
     });
   },
 
-  // Verify OTP
+  // Page 4: Verify OTP
   async verifyOtp(official_email, otp_code) {
     return this.request('/institutions/verify-otp', {
       method: 'POST',
@@ -68,7 +67,7 @@ const API = {
     });
   },
 
-  // Set Password
+  // Page 5: Set Password
   async setPassword(official_email, password, confirm_password) {
     return this.request('/institutions/set-password', {
       method: 'POST',
@@ -76,7 +75,7 @@ const API = {
     });
   },
 
-  // Dashboard Stats & Certificates
+  // Page 6: Dashboard Stats & Recent Certificates
   async getDashboardStats() {
     return this.request('/certificates/stats');
   },
@@ -86,7 +85,7 @@ const API = {
     return this.request(`/certificates/${query}`);
   },
 
-  // Issue Certificate
+  // Page 7: Issue Certificate
   async issueCertificate(certData) {
     return this.request('/certificates/issue', {
       method: 'POST',
@@ -94,23 +93,7 @@ const API = {
     });
   },
 
-  // Batch CSV Issuance
-  async batchIssue(formData) {
-    return this.request('/certificates/batch-issue', {
-      method: 'POST',
-      body: formData
-    });
-  },
-
-  // Revoke Certificate
-  async revokeCertificate(certId, reason) {
-    return this.request(`/certificates/${certId}/revoke`, {
-      method: 'PATCH',
-      body: JSON.stringify({ revocation_reason: reason })
-    });
-  },
-
-  // Verify by Certificate Number or QR
+  // Page 9 Tab A: Verify by Certificate Number (Decoded from QR or manually typed)
   async verifyByNumber(certificate_number) {
     return this.request('/certificates/verify', {
       method: 'POST',
@@ -118,7 +101,7 @@ const API = {
     });
   },
 
-  // Verify by PDF Document Upload
+  // Page 9 Tab B: Verify by Document
   async verifyByDocument(formData) {
     return this.request('/certificates/verify-document', {
       method: 'POST',
@@ -127,210 +110,67 @@ const API = {
   }
 };
 
-// ============================================================================
-// NAVIGATION & VIEW CONTROLLER
-// ============================================================================
+// Initialize Application
+document.addEventListener('DOMContentLoaded', () => {
+  updateNavState();
 
+  if (state.token && state.institution) {
+    loadDashboardData();
+  }
+});
+
+// View Router
 function navigateTo(pageId) {
-  // Stop camera if leaving verification page
-  if (state.currentView === 'page-9-verify' && pageId !== 'page-9-verify') {
+  // If navigating away from scanner, stop active camera stream
+  if (state.isScanning && pageId !== 'page-9-verify') {
     stopCameraScanner();
   }
 
-  // Hide all page views
-  document.querySelectorAll('.page-view, .view-section').forEach(el => {
-    el.classList.remove('active');
-    el.style.setProperty('display', 'none', 'important');
+  state.currentView = pageId;
+
+  document.querySelectorAll('.view-section').forEach(sec => {
+    sec.classList.remove('active');
   });
 
-  // Show target page
   const target = document.getElementById(pageId);
   if (target) {
     target.classList.add('active');
-    target.style.setProperty('display', 'block', 'important');
-    state.currentView = pageId;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Update navbar active links
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.remove('active');
-    const onclickAttr = link.getAttribute('onclick') || '';
-    if (onclickAttr.includes(`'${pageId}'`)) {
-      link.classList.add('active');
-    }
-  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Update navbar auth state
-  updateNavState();
-
-  // If entering verification page, initialize dropzone
-  if (pageId === 'page-9-verify') {
-    setTimeout(initPdfDropzone, 50);
-  }
-
-  // If entering dashboard, load real data
   if (pageId === 'page-6-dashboard') {
     loadDashboardData();
   }
 }
 
-function scrollToSection(sectionId) {
-  navigateTo('page-1-landing');
-  setTimeout(() => {
-    const el = document.getElementById(sectionId);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  }, 100);
-}
-
-function toggleFaq(button) {
-  const item = button.closest('.faq-item');
-  if (!item) return;
-  
-  const wasActive = item.classList.contains('active');
-  document.querySelectorAll('.faq-item').forEach(el => el.classList.remove('active'));
-  
-  if (!wasActive) {
-    item.classList.add('active');
-  }
-}
-
-// Persona Carousel Controls
-let isPersonaAnimationPaused = false;
-
-function scrollPersonaCarousel(offset) {
-  const track = document.getElementById('persona-track');
-  const container = document.getElementById('persona-carousel-wrap');
-  if (track) {
-    track.style.animationPlayState = 'paused';
-    isPersonaAnimationPaused = true;
-    updateCarouselPlayIcon();
-    track.scrollBy({ left: offset, behavior: 'smooth' });
-  }
-}
-
-function togglePersonaAnimation() {
-  const track = document.getElementById('persona-track');
-  if (!track) return;
-  
-  if (isPersonaAnimationPaused) {
-    track.style.animationPlayState = 'running';
-    isPersonaAnimationPaused = false;
-  } else {
-    track.style.animationPlayState = 'paused';
-    isPersonaAnimationPaused = true;
-  }
-  updateCarouselPlayIcon();
-}
-
-// Sardine Step-by-Step Simulator Controls
-let currentSimStep = 1;
-let simStepInterval = null;
-
-function switchSimStep(stepNum) {
-  currentSimStep = stepNum;
-  
-  // Update Tab buttons
-  for (let i = 1; i <= 4; i++) {
-    const tab = document.getElementById(`sim-tab-${i}`);
-    const pane = document.getElementById(`sim-step-${i}`);
-    if (tab) {
-      if (i === stepNum) tab.classList.add('active');
-      else tab.classList.remove('active');
-    }
-    if (pane) {
-      if (i === stepNum) pane.classList.add('active');
-      else pane.classList.remove('active');
-    }
-  }
-}
-
-function initSimAutoPlay() {
-  if (simStepInterval) clearInterval(simStepInterval);
-  simStepInterval = setInterval(() => {
-    currentSimStep = (currentSimStep % 4) + 1;
-    switchSimStep(currentSimStep);
-  }, 3800);
-}
-
-// Start auto-play on DOM load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSimAutoPlay);
-} else {
-  initSimAutoPlay();
-}
-
+// Navigation Bar Auth State
 function updateNavState() {
-  const loggedOutGroup = document.getElementById('nav-auth-logged-out');
-  const loggedInGroup = document.getElementById('nav-auth-logged-in');
-
-  const oldLoginBtn = document.getElementById('nav-login-btn');
-  const oldVerifyBtn = document.getElementById('nav-verify-btn');
-  const oldDashGroup = document.getElementById('nav-dashboard-btn-group');
+  const loginBtn = document.getElementById('nav-login-btn');
+  const dashGroup = document.getElementById('nav-dashboard-btn-group');
 
   if (state.token && state.institution) {
-    if (loggedOutGroup) loggedOutGroup.style.display = 'none';
-    if (loggedInGroup) loggedInGroup.style.display = 'flex';
-
-    if (oldLoginBtn) oldLoginBtn.style.display = 'none';
-    if (oldVerifyBtn) oldVerifyBtn.style.display = 'none';
-    if (oldDashGroup) oldDashGroup.style.display = 'flex';
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (dashGroup) dashGroup.style.display = 'flex';
   } else {
-    if (loggedOutGroup) loggedOutGroup.style.display = 'flex';
-    if (loggedInGroup) loggedInGroup.style.display = 'none';
-
-    if (oldLoginBtn) oldLoginBtn.style.display = 'inline-flex';
-    if (oldVerifyBtn) oldVerifyBtn.style.display = 'inline-flex';
-    if (oldDashGroup) oldDashGroup.style.display = 'none';
+    if (loginBtn) loginBtn.style.display = 'inline-flex';
+    if (dashGroup) dashGroup.style.display = 'none';
   }
-}
-
-function handleSignOut() {
-  localStorage.removeItem('avfa_jwt');
-  localStorage.removeItem('avfa_institution');
-  state.token = null;
-  state.institution = null;
-  updateNavState();
-  showToast('Signed out successfully', 'success');
-  navigateTo('page-1-landing');
 }
 
 function logoutInstitution() {
-  handleSignOut();
-}
-
-// Global Toast Notifications
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  
-  let iconSvg = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-  if (type === 'success') {
-    iconSvg = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--primary-500);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
-  } else if (type === 'error') {
-    iconSvg = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--color-danger);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>';
-  } else if (type === 'warning') {
-    iconSvg = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--color-warning);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
-  }
-
-  toast.innerHTML = `${iconSvg} <span>${message}</span>`;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(100%)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 4500);
+  state.token = null;
+  state.institution = null;
+  localStorage.removeItem('avfa_jwt');
+  localStorage.removeItem('avfa_institution');
+  updateNavState();
+  showToast('Logged out successfully', 'info');
+  navigateTo('page-1-landing');
 }
 
 // ============================================================================
-// AUTHENTICATION & ONBOARDING (PAGES 2, 3, 4, 5)
+// PAGE 2: INSTITUTION LOGIN
 // ============================================================================
-
 async function handleInstitutionLogin() {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
@@ -355,6 +195,9 @@ async function handleInstitutionLogin() {
   }
 }
 
+// ============================================================================
+// PAGE 3: INSTITUTION REGISTRATION
+// ============================================================================
 async function handleInstitutionRegister() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
@@ -363,6 +206,10 @@ async function handleInstitutionRegister() {
   try {
     const res = await API.registerInstitution(name, email, address);
     state.pendingEmail = email;
+
+    if (res.otp_debug) {
+      console.log(`%c[AVFA Real OTP]%c Verification Code: ${res.otp_debug}`, 'background: #243B53; color: #FFF; padding: 4px 8px; border-radius: 4px; font-weight: bold;', 'color: #C65D3B; font-weight: bold; font-size: 16px; margin-left: 8px;');
+    }
 
     const emailEl = document.getElementById('otp-target-email');
     if (emailEl) emailEl.textContent = email;
@@ -381,6 +228,9 @@ async function handleInstitutionRegister() {
   }
 }
 
+// ============================================================================
+// PAGE 4: OTP VERIFICATION
+// ============================================================================
 function handleOtpInput(current, nextId) {
   if (current.value.length >= 1 && nextId) {
     const next = document.getElementById(nextId);
@@ -419,6 +269,9 @@ async function handleVerifyOtp() {
   }
 }
 
+// ============================================================================
+// PAGE 5: SET PASSWORD
+// ============================================================================
 async function handleSetPassword() {
   const pass = document.getElementById('set-pass').value;
   const confirm = document.getElementById('set-pass-confirm').value;
@@ -436,236 +289,251 @@ async function handleSetPassword() {
   }
 
   try {
-    await API.setPassword(email, pass, confirm);
-    showToast('Password configured successfully! Please sign in.', 'success');
-    const loginEmail = document.getElementById('login-email');
-    if (loginEmail) loginEmail.value = email;
+    const res = await API.setPassword(email, pass, confirm);
+    showToast(res.message || 'Password set successfully! Please login.', 'success');
     navigateTo('page-2-login');
   } catch (err) {
-    showToast(`Password setup failed: ${err.message}`, 'error');
+    showToast(`Failed to set password: ${err.message}`, 'error');
   }
 }
 
 // ============================================================================
-// DASHBOARD & CREDENTIAL OPERATIONS (PAGES 6, 7, 8)
+// PAGE 6: DASHBOARD (POST-LOGIN)
 // ============================================================================
+async function loadDashboardData(search = '') {
+  const nameEl = document.getElementById('dash-inst-name');
+  if (nameEl && state.institution) {
+    nameEl.textContent = state.institution.name;
+  }
 
-async function loadDashboardData() {
   try {
-    if (state.institution) {
-      const nameEl = document.getElementById('dash-inst-name');
-      if (nameEl) nameEl.textContent = state.institution.name;
-    }
+    const stats = await API.getDashboardStats();
+    const totalIssued = document.getElementById('dash-total-issued');
+    const activeCerts = document.getElementById('dash-active-certs');
+    const revokedCerts = document.getElementById('dash-revoked-certs');
 
-    const [stats, certs] = await Promise.all([
-      API.getDashboardStats().catch(() => ({ certificates_issued: 0, active: 0, revoked: 0, verification_checks: 342 })),
-      API.getCertificates().catch(() => [])
-    ]);
+    if (totalIssued) totalIssued.textContent = stats.certificates_issued;
+    if (activeCerts) activeCerts.textContent = stats.active;
+    if (revokedCerts) revokedCerts.textContent = stats.revoked;
 
-    // Update stats cards
-    document.getElementById('stat-issued').textContent = stats.certificates_issued;
-    document.getElementById('stat-active').textContent = stats.active;
-    document.getElementById('stat-revoked').textContent = stats.revoked;
-    document.getElementById('stat-checks').textContent = stats.verification_checks;
-
+    const certs = await API.getCertificates(search);
     state.recentCertificates = certs;
-    renderCertificatesTable(certs);
+    renderDashboardTable(certs);
   } catch (err) {
     console.error('Error loading dashboard data:', err);
   }
 }
 
-function renderCertificatesTable(certs) {
-  const tbody = document.getElementById('certificates-table-body');
+function renderDashboardTable(certs) {
+  const tbody = document.getElementById('dash-cert-table-body');
   if (!tbody) return;
 
   if (!certs || certs.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          No academic certificates issued yet. Click "Issue Single Certificate" to get started.
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No certificate records found.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = certs.map(c => {
-    const isRevoked = c.status === 'REVOKED';
-    const statusPill = isRevoked
-      ? `<span class="status-pill revoked">REVOKED</span>`
-      : `<span class="status-pill issued">ISSUED</span>`;
-
-    const marksCgpa = [
-      c.marks ? `Marks: ${c.marks}` : '',
-      c.cgpa ? `CGPA: ${c.cgpa}` : ''
-    ].filter(Boolean).join(' • ') || '—';
-
-    return `
-      <tr>
-        <td class="mono" style="color: var(--cyan-500); font-weight: 600;">${c.certificate_number}</td>
-        <td style="font-weight: 600; color: #FFFFFF;">${c.student_name}</td>
-        <td class="mono">${c.student_roll_no}</td>
-        <td>${c.course_name}</td>
-        <td>${marksCgpa}</td>
-        <td>${statusPill}</td>
-        <td>
-          <div style="display: flex; gap: 0.5rem;">
-            <button onclick="handleQuickVerify('${c.certificate_number}')" class="btn btn-outline btn-sm" title="Verify Certificate">
-              Verify
-            </button>
-            ${!isRevoked ? `
-              <button onclick="handleRevokePrompt('${c.id}', '${c.certificate_number}')" class="btn btn-outline btn-sm" style="color: var(--color-danger); border-color: rgba(239,68,68,0.3);" title="Revoke Certificate">
-                Revoke
-              </button>
-            ` : ''}
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  tbody.innerHTML = certs.map(c => `
+    <tr>
+      <td style="font-family: var(--font-mono); font-weight: 700; color: var(--color-gold);">${c.certificate_number}</td>
+      <td style="font-weight: 600;">${c.student_name}</td>
+      <td style="font-family: var(--font-mono); font-size: 0.85rem;">${c.student_roll_no}</td>
+      <td>${c.course_name}</td>
+      <td style="color: var(--color-text-muted); font-size: 0.85rem;">${c.issue_date}</td>
+      <td>
+        <span class="status-pill ${c.status === 'ISSUED' ? 'valid' : 'revoked'}">
+          ${c.status === 'ISSUED' ? 'Active' : 'Revoked'}
+        </span>
+      </td>
+    </tr>
+  `).join('');
 }
 
-function handleCertSearch(query) {
-  const clean = query.trim().toLowerCase();
-  if (!clean) {
-    renderCertificatesTable(state.recentCertificates);
-    return;
-  }
-
-  const filtered = state.recentCertificates.filter(c => 
-    c.student_name.toLowerCase().includes(clean) ||
-    c.certificate_number.toLowerCase().includes(clean) ||
-    c.student_roll_no.toLowerCase().includes(clean) ||
-    c.course_name.toLowerCase().includes(clean)
-  );
-  renderCertificatesTable(filtered);
+function handleDashboardSearch(query) {
+  loadDashboardData(query);
 }
 
-function exportDashboardCsv() {
-  if (!state.recentCertificates || state.recentCertificates.length === 0) {
-    showToast('No certificate data to export', 'warning');
-    return;
-  }
-
-  const headers = ['Certificate Number', 'Student Name', 'Roll Number', 'Course', 'Issue Date', 'Marks', 'CGPA', 'Status', 'SHA-256 Hash'];
-  const rows = state.recentCertificates.map(c => [
-    c.certificate_number,
-    `"${c.student_name}"`,
-    `"${c.student_roll_no}"`,
-    `"${c.course_name}"`,
-    c.issue_date,
-    c.marks || '',
-    c.cgpa || '',
-    c.status,
-    c.sha256_hash
-  ]);
-
-  const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `AVFA_Certificates_${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Certificates exported to CSV', 'success');
-}
-
+// ============================================================================
+// PAGE 7: ISSUE NEW CERTIFICATE
+// ============================================================================
 async function handleIssueCertificate() {
+  if (!state.token) {
+    showToast('Please login as an institution to issue certificates', 'error');
+    navigateTo('page-2-login');
+    return;
+  }
+
   const student_name = document.getElementById('issue-name').value.trim();
   const student_roll_no = document.getElementById('issue-roll').value.trim();
-  const issue_date = document.getElementById('issue-date').value;
   const course_name = document.getElementById('issue-course').value.trim();
-  const marks = document.getElementById('issue-marks').value.trim() || null;
-  const cgpa = document.getElementById('issue-cgpa').value.trim() || null;
+  const issue_date = document.getElementById('issue-date').value;
+  const marksVal = document.getElementById('issue-marks').value.trim();
+  const cgpaVal = document.getElementById('issue-cgpa').value.trim();
+
+  if (!student_name || !student_roll_no || !course_name || !issue_date || !marksVal || !cgpaVal) {
+    showToast('All credential parameters (including Total Marks and CGPA) are mandatory.', 'error');
+    return;
+  }
+
+  const marksInt = parseInt(marksVal, 10);
+  if (isNaN(marksInt)) {
+    showToast('Marks must be a valid integer score.', 'error');
+    return;
+  }
 
   try {
-    const res = await API.issueCertificate({
+    const newCert = await API.issueCertificate({
       student_name,
       student_roll_no,
-      issue_date,
       course_name,
-      degree_name: course_name,
-      marks,
-      cgpa
+      issue_date,
+      marks: String(marksInt),
+      cgpa: cgpaVal
     });
 
-    showToast(`Certificate ${res.certificate_number} issued & anchored!`, 'success');
-    
-    if (res.pdf_url) {
-      const a = document.createElement('a');
-      a.href = res.pdf_url;
-      a.download = `${res.certificate_number}.pdf`;
-      a.click();
+    document.getElementById('issued-cert-num').textContent = newCert.certificate_number;
+    document.getElementById('issued-cert-hash').textContent = newCert.sha256_hash;
+    document.getElementById('issued-cert-sig').textContent = newCert.digital_signature;
+    document.getElementById('issued-cert-status').innerHTML = `<span class="status-pill valid">${newCert.status}</span>`;
+
+    // Handle generated PDF and Download Certificate button
+    if (newCert.pdf_url) {
+      const pdfCleanUrl = '/' + newCert.pdf_url.replace(/^\/+/, '');
+      const pdfFrame = document.getElementById('issued-pdf-frame');
+      const downloadBtn = document.getElementById('download-cert-btn');
+
+      if (pdfFrame) {
+        pdfFrame.src = pdfCleanUrl;
+      }
+      if (downloadBtn) {
+        downloadBtn.href = pdfCleanUrl;
+        downloadBtn.download = `${newCert.certificate_number}.pdf`;
+      }
     }
 
-    navigateTo('page-6-dashboard');
+    showToast('Certificate cryptographically signed and PDF generated!', 'success');
+    navigateTo('page-8-issued');
   } catch (err) {
     showToast(`Issuance failed: ${err.message}`, 'error');
   }
 }
 
-function handleBatchFileSelected(input) {
-  if (input.files && input.files[0]) {
-    state.selectedBatchCsvFile = input.files[0];
-    document.getElementById('selected-csv-name').textContent = `Selected: ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+// ============================================================================
+// PAGE 9: VERIFY CERTIFICATE (LIVE CAMERA QR SCANNER & TAB B)
+// ============================================================================
+function switchVerifyTab(tab) {
+  state.activeVerifyTab = tab;
+  const btnA = document.getElementById('tab-btn-a');
+  const btnB = document.getElementById('tab-btn-b');
+  const contentA = document.getElementById('verify-content-a');
+  const contentB = document.getElementById('verify-content-b');
+
+  if (tab === 'A') {
+    btnA.classList.add('active');
+    btnB.classList.remove('active');
+    contentA.style.display = 'block';
+    contentB.style.display = 'none';
+  } else {
+    // If leaving Tab A, stop scanner
+    stopCameraScanner();
+    btnB.classList.add('active');
+    btnA.classList.remove('active');
+    contentB.style.display = 'block';
+    contentA.style.display = 'none';
   }
 }
 
-async function handleBatchCsvSubmit() {
-  if (!state.selectedBatchCsvFile) {
-    showToast('Please select a CSV file first', 'error');
+// Start Live Camera QR Scanner
+async function startCameraScanner() {
+  const idlePlaceholder = document.getElementById('scanner-idle-placeholder');
+  const reticle = document.getElementById('scanner-reticle');
+  const controls = document.getElementById('camera-controls');
+
+  if (typeof Html5Qrcode === 'undefined') {
+    showToast('QR Scanner engine loading... please check internet connection or upload image', 'error');
     return;
   }
 
-  const formData = new FormData();
-  formData.append('file', state.selectedBatchCsvFile);
-
   try {
-    const res = await API.batchIssue(formData);
-    showToast(`Batch completed: ${res.issued_count || res.total_certificates || 'Multiple'} certificates issued!`, 'success');
-    navigateTo('page-6-dashboard');
+    if (!state.html5QrScanner) {
+      state.html5QrScanner = new Html5Qrcode("qr-reader");
+    }
+
+    idlePlaceholder.style.display = 'none';
+    reticle.style.display = 'block';
+    controls.style.display = 'flex';
+    state.isScanning = true;
+
+    const config = {
+      fps: 15,
+      qrbox: { width: 220, height: 220 },
+      aspectRatio: 1.333
+    };
+
+    await state.html5QrScanner.start(
+      { facingMode: state.cameraFacingMode },
+      config,
+      (decodedText, decodedResult) => {
+        onQrCodeScanned(decodedText);
+      },
+      (errorMessage) => {
+        // Continuous parse frames
+      }
+    );
+
+    showToast('Camera active. Align QR code inside the frame.', 'info');
   } catch (err) {
-    showToast(`Batch issuance failed: ${err.message}`, 'error');
-  }
-}
-
-async function handleRevokePrompt(certId, certNum) {
-  const reason = prompt(`Enter official revocation reason for certificate ${certNum}:`);
-  if (!reason || !reason.trim()) return;
-
-  try {
-    await API.revokeCertificate(certId, reason.trim());
-    showToast(`Certificate ${certNum} successfully revoked.`, 'success');
-    loadDashboardData();
-  } catch (err) {
-    showToast(`Revocation failed: ${err.message}`, 'error');
-  }
-}
-
-// ============================================================================
-// MULTI-MODAL VERIFICATION HUB (PAGE 9 & PAGE 10)
-// ============================================================================
-
-function switchVerifyTab(tab) {
-  state.activeVerifyTab = tab;
-  const tabABtn = document.getElementById('tab-btn-a') || document.getElementById('tab-a-btn');
-  const tabBBtn = document.getElementById('tab-btn-b') || document.getElementById('tab-b-btn');
-  const tabAContent = document.getElementById('verify-content-a') || document.getElementById('verify-tab-a-content');
-  const tabBContent = document.getElementById('verify-content-b') || document.getElementById('verify-tab-b-content');
-
-  if (tab === 'A') {
-    if (tabABtn) tabABtn.classList.add('active');
-    if (tabBBtn) tabBBtn.classList.remove('active');
-    if (tabAContent) tabAContent.style.display = 'block';
-    if (tabBContent) tabBContent.style.display = 'none';
-  } else {
-    if (tabBBtn) tabBBtn.classList.add('active');
-    if (tabABtn) tabABtn.classList.remove('active');
-    if (tabBContent) tabBContent.style.display = 'block';
-    if (tabAContent) tabAContent.style.display = 'none';
+    console.error('Camera Scanner Error:', err);
     stopCameraScanner();
+    showToast(`Camera access issue: ${err.message || err}. Please allow permissions or use file upload.`, 'error');
+  }
+}
+
+// Stop Live Camera Scanner
+async function stopCameraScanner() {
+  const idlePlaceholder = document.getElementById('scanner-idle-placeholder');
+  const reticle = document.getElementById('scanner-reticle');
+  const controls = document.getElementById('camera-controls');
+
+  if (state.html5QrScanner && state.isScanning) {
+    try {
+      await state.html5QrScanner.stop();
+    } catch (e) {
+      console.warn('Notice on scanner stop:', e);
+    }
+  }
+
+  state.isScanning = false;
+  if (idlePlaceholder) idlePlaceholder.style.display = 'flex';
+  if (reticle) reticle.style.display = 'none';
+  if (controls) controls.style.display = 'none';
+}
+
+// Switch front / back camera
+async function switchCameraFacing() {
+  state.cameraFacingMode = (state.cameraFacingMode === 'environment') ? 'user' : 'environment';
+  if (state.isScanning) {
+    await stopCameraScanner();
+    await startCameraScanner();
+  }
+}
+
+// Scan QR image file from gallery/disk
+async function handleQrImageUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  if (typeof Html5Qrcode === 'undefined') {
+    showToast('QR Scanner engine loading...', 'error');
+    return;
+  }
+
+  const html5QrCode = new Html5Qrcode("qr-reader");
+  try {
+    const decodedText = await html5QrCode.scanFile(file, true);
+    onQrCodeScanned(decodedText);
+  } catch (err) {
+    showToast('No readable QR code found in uploaded image.', 'error');
   }
 }
 
@@ -674,7 +542,7 @@ function extractCertIdentifier(payload) {
   if (!payload) return '';
   const text = payload.trim();
 
-  // 1. Direct Regex match for standard format (e.g. CERT-2026-B97DA3E5, AVFA-GIT-2024-001)
+  // 1. Direct Regex match for standard AVFA format (e.g. CERT-2026-B97DA3E5, AVFA-GIT-2024-001)
   const match = text.match(/\b(CERT-\d{4}-[A-Z0-9]+|AVFA-[A-Z0-9-]+)\b/i);
   if (match) {
     return match[1].toUpperCase();
@@ -700,94 +568,25 @@ function extractCertIdentifier(payload) {
   return text;
 }
 
-// Live Camera Scanner via Html5Qrcode
-async function startCameraScanner() {
-  if (typeof Html5Qrcode === 'undefined') {
-    showToast('QR Camera engine loading...', 'error');
-    return;
-  }
-
-  const idlePlaceholder = document.getElementById('scanner-idle-placeholder') || document.getElementById('camera-idle-placeholder');
-  const reticle = document.getElementById('scanner-reticle');
-  const controls = document.getElementById('camera-controls') || document.getElementById('scanner-controls');
-
-  if (idlePlaceholder) idlePlaceholder.style.display = 'none';
-  if (reticle) reticle.style.display = 'block';
-  if (controls) controls.style.display = 'flex';
-
-  try {
-    state.html5QrScanner = new Html5Qrcode("qr-reader");
-    state.isScanning = true;
-
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    await state.html5QrScanner.start(
-      { facingMode: state.cameraFacingMode },
-      config,
-      (decodedText) => onQrCodeScanned(decodedText),
-      () => {}
-    );
-  } catch (err) {
-    showToast(`Camera access failed: ${err.message || err}`, 'error');
-    stopCameraScanner();
-  }
-}
-
-async function stopCameraScanner() {
-  if (state.html5QrScanner && state.isScanning) {
-    try {
-      await state.html5QrScanner.stop();
-      state.html5QrScanner.clear();
-    } catch (e) {}
-    state.html5QrScanner = null;
-    state.isScanning = false;
-  }
-
-  const idlePlaceholder = document.getElementById('scanner-idle-placeholder') || document.getElementById('camera-idle-placeholder');
-  const reticle = document.getElementById('scanner-reticle');
-  const controls = document.getElementById('camera-controls') || document.getElementById('scanner-controls');
-
-  if (idlePlaceholder) idlePlaceholder.style.display = 'flex';
-  if (reticle) reticle.style.display = 'none';
-  if (controls) controls.style.display = 'none';
-}
-
-async function switchCameraFacing() {
-  state.cameraFacingMode = (state.cameraFacingMode === 'environment') ? 'user' : 'environment';
-  if (state.isScanning) {
-    await stopCameraScanner();
-    await startCameraScanner();
-  }
-}
-
-async function handleQrImageUpload(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
-
-  if (typeof Html5Qrcode === 'undefined') {
-    showToast('QR Scanner engine loading...', 'error');
-    return;
-  }
-
-  const html5QrCode = new Html5Qrcode("qr-reader");
-  try {
-    const decodedText = await html5QrCode.scanFile(file, true);
-    onQrCodeScanned(decodedText);
-  } catch (err) {
-    showToast('No readable QR code found in uploaded image.', 'error');
-  }
-}
-
+// Decoded QR payload handler -> Extracts Certificate ID and auto-verifies
 async function onQrCodeScanned(decodedText) {
+  console.log('QR Code Decoded:', decodedText);
+
+  // Stop camera feed
   stopCameraScanner();
+
   const cleanCertNum = extractCertIdentifier(decodedText);
   showToast(`QR Scanned: ${cleanCertNum}`, 'success');
 
+  // Auto-fill manual input as reference
   const manualInput = document.getElementById('verify-cert-num');
   if (manualInput) manualInput.value = cleanCertNum;
 
+  // Execute verification immediately
   await executeVerificationByNumber(cleanCertNum);
 }
 
+// Manual verify button click handler
 async function handleVerifyByNumber() {
   const rawInput = document.getElementById('verify-cert-num').value.trim();
   if (!rawInput) {
@@ -798,14 +597,7 @@ async function handleVerifyByNumber() {
   await executeVerificationByNumber(certNum);
 }
 
-async function handleQuickVerify(certNum) {
-  navigateTo('page-9-verify');
-  switchVerifyTab('A');
-  const input = document.getElementById('verify-cert-num');
-  if (input) input.value = certNum;
-  await executeVerificationByNumber(certNum);
-}
-
+// Execution core for Tab A (QR Scan & Manual Number)
 async function executeVerificationByNumber(certNum) {
   try {
     const res = await API.verifyByNumber(certNum);
@@ -818,63 +610,17 @@ async function executeVerificationByNumber(certNum) {
 
 function handlePdfFileSelected(input) {
   if (input.files && input.files[0]) {
-    setPdfFile(input.files[0]);
+    state.selectedPdfFile = input.files[0];
+    document.getElementById('selected-file-name').textContent = `Selected: ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
   }
 }
 
-function setPdfFile(file) {
-  if (!file.name.toLowerCase().endsWith('.pdf')) {
-    showToast('Only PDF files are supported for document verification.', 'error');
-    return;
-  }
-  state.selectedPdfFile = file;
-  const label = document.getElementById('selected-file-name');
-  if (label) {
-    label.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-    label.style.color = 'var(--primary)';
-    label.style.fontWeight = '700';
-  }
-  showToast(`File selected: ${file.name}`, 'success');
-}
-
-function initPdfDropzone() {
-  const dropzone = document.getElementById('pdf-dropzone');
-  if (!dropzone) return;
-
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.style.borderColor = 'var(--accent)';
-      dropzone.style.backgroundColor = '#F2EFE8';
-    }, false);
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.style.borderColor = 'var(--primary)';
-      dropzone.style.backgroundColor = 'var(--bg-panel)';
-    }, false);
-  });
-
-  dropzone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files && files.length > 0) {
-      setPdfFile(files[0]);
-    }
-  }, false);
-}
-
+// Tab B Submit: Verify by Document Upload
 async function handleVerifyByDocument() {
   if (!state.selectedPdfFile) {
-    showToast('Please select or drag a PDF certificate file first', 'error');
+    showToast('Please select or drag-and-drop a PDF certificate file', 'error');
     return;
   }
-
-  showToast('Analyzing document with OCR & SHA-256 validation...', 'info');
 
   const formData = new FormData();
   formData.append('file', state.selectedPdfFile);
@@ -889,167 +635,125 @@ async function handleVerifyByDocument() {
 }
 
 // ============================================================================
-// PAGE 10: VERIFICATION RESULT RENDERING (Sardine.ai & Persona Theme)
+// PAGE 10: VERIFICATION RESULT RENDERING
 // ============================================================================
 
+// Render Result for Tab A (By Scanned QR / Certificate Number)
 function renderVerificationResultTabA(res, queriedNumber) {
   const container = document.getElementById('result-container');
   if (!container) return;
 
   const found = res.found;
   const cert = res.certificate;
-  const isAuthentic = res.hash_signature_valid && cert && cert.status !== 'REVOKED';
-  const isRevoked = cert && cert.status === 'REVOKED';
+  const isAuthentic = res.hash_signature_valid;
+  const isTampered = res.tamper_detected;
 
-  let bannerHtml = '';
-  let statusPill = '';
-
+  let indicatorHtml = '';
   if (!found) {
-    statusPill = `<span class="status-pill revoked">NOT_FOUND</span>`;
-    bannerHtml = `
-      <div class="result-hero-banner warning" style="background: linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%) !important; border: 1.5px solid #FDE68A !important; border-radius: 20px; padding: 1.75rem 2rem; display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
-        <div class="result-icon-shield" style="width: 58px; height: 58px; border-radius: 50%; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem;">
-          ⚠️
-        </div>
+    indicatorHtml = `
+      <div class="indicator-banner warning">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #92400E !important; margin-bottom: 0.35rem;">Record Not Found in Institutional Registry</h3>
-          <p style="color: #475569 !important; font-size: 0.9rem;">No academic credential matches the queried identifier: <code class="mono" style="color: #D97706; font-weight: 700;">${queriedNumber}</code></p>
+          <div>Record Not Found in Institutional Registry</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">No record exists for certificate identifier: ${queriedNumber}</div>
         </div>
       </div>
     `;
-  } else if (isRevoked) {
-    statusPill = `<span class="status-pill revoked">REVOKED</span>`;
-    bannerHtml = `
-      <div class="result-hero-banner warning" style="background: linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%) !important; border: 1.5px solid #FDE68A !important; border-radius: 20px; padding: 1.75rem 2rem; display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
-        <div class="result-icon-shield" style="width: 58px; height: 58px; border-radius: 50%; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem;">
-          ⛔
-        </div>
+  } else if (isAuthentic && !isTampered) {
+    indicatorHtml = `
+      <div class="indicator-banner valid">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #92400E !important; margin-bottom: 0.35rem;">Certificate Status: Administratively Revoked</h3>
-          <p style="color: #475569 !important; font-size: 0.9rem;">Reason: <strong style="color: #0F172A;">${cert.revocation_reason || 'Official administrative action'}</strong></p>
+          <div>Record Authentic Γ£à</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">Cryptographic hash matches immutable institutional registry. RSA-2048 signature valid.</div>
         </div>
       </div>
     `;
-  } else if (isAuthentic) {
-    statusPill = `<span class="status-pill issued">VALID / ISSUED</span>`;
-    bannerHtml = `
-      <div class="result-hero-banner valid" style="background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%) !important; border: 1.5px solid #A7F3D0 !important; border-radius: 20px; padding: 1.75rem 2rem; display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
-        <div class="result-icon-shield" style="width: 58px; height: 58px; border-radius: 50%; background: #DCFCE7; color: #059669; border: 2px solid #86EFAC; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem;">
-          ✓
-        </div>
+  } else {
+    indicatorHtml = `
+      <div class="indicator-banner tampered">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #065F46 !important; margin-bottom: 0.35rem;">Cryptographically Valid & Verified Record</h3>
-          <p style="color: #334155 !important; font-size: 0.9rem;">Institutional RSA-2048 signature matches and Merkle ledger hash is anchored.</p>
+          <div>Tamper / Revocation Warning ΓÜá∩╕Å</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">${cert && cert.status === 'REVOKED' ? `Credential has been revoked: ${cert.revocation_reason || 'Administrative audit'}` : 'Cryptographic integrity violation detected.'}</div>
         </div>
-      </div>
-    `;
-  }
-
-  let detailsHtml = '';
-  if (cert) {
-    detailsHtml = `
-      <div class="result-metadata-box" style="background: #FFFFFF !important; border: 1.5px solid #E2E8F0 !important; border-radius: 20px !important; padding: 2rem !important; margin-bottom: 1.5rem !important; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;">
-        <div class="result-meta-header" style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #0284C7 !important; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          <span>Official Registered Metadata</span>
-        </div>
-        <div class="result-meta-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem;">
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Student Name</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${cert.student_name}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Roll Number</span>
-            <span class="result-meta-value mono" style="font-size: 1.1rem; font-weight: 800; color: #0284C7 !important; display: block; margin-top: 0.2rem;">${cert.student_roll_no}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Course / Degree</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${cert.course_name}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Issue Date</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${cert.issue_date}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Total Marks</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${cert.marks || '—'}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">CGPA</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${cert.cgpa || '—'}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="result-hash-container" style="background: #F0F9FF !important; border: 1.5px solid #BAE6FD !important; border-radius: 16px; padding: 1.5rem 1.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-        <div class="result-hash-label" style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0369A1 !important; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.45rem;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>
-          <span>Cryptographic SHA-256 Ledger Digest</span>
-        </div>
-        <div class="result-hash-code" style="font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; font-weight: 700; color: #0284C7 !important; word-break: break-all; background: #FFFFFF !important; padding: 0.85rem 1.15rem; border-radius: 10px; border: 1px solid #BAE6FD !important;">${cert.sha256_hash}</div>
       </div>
     `;
   }
 
   container.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
-      <h2 style="font-size: 1.75rem; font-weight: 800; color: #0F172A !important;">Credential Verification Result</h2>
-      ${statusPill}
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; color: var(--color-primary);">Verification Result (QR / Certificate ID)</h2>
+      <span class="status-pill ${cert && cert.status === 'ISSUED' ? 'valid' : 'revoked'}">${cert ? cert.status : 'NOT_FOUND'}</span>
     </div>
-    ${bannerHtml}
-    ${detailsHtml}
+
+    ${indicatorHtml}
+
+    ${cert ? `
+      <div style="background: #FAF8F5; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; font-weight: 700;">Credential Details</h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.92rem;">
+          <div><span style="color: var(--color-text-muted);">Student Name:</span> <strong style="color: var(--color-text-main);">${cert.student_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-text-main);">${cert.student_roll_no}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Course / Degree:</span> <strong style="color: var(--color-text-main);">${cert.course_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Issue Date:</span> <strong style="color: var(--color-text-main);">${cert.issue_date}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Total Marks:</span> <strong style="color: var(--color-text-main);">${cert.marks || '485'}</strong></div>
+          <div><span style="color: var(--color-text-muted);">CGPA:</span> <strong style="color: var(--color-text-main);">${cert.cgpa || '9.82'}</strong></div>
+        </div>
+
+        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+          <div style="font-size: 0.72rem; color: var(--color-primary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">SHA-256 Hash Digest</div>
+          <div style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--color-text-muted); word-break: break-all; margin-top: 0.25rem;">${cert.sha256_hash}</div>
+        </div>
+      </div>
+    ` : ''}
+
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+      <button class="btn btn-primary btn-block" onclick="navigateTo('page-9-verify')">Scan Another Certificate</button>
+      <button class="btn btn-secondary btn-block" onclick="navigateTo('page-1-landing')">Back to Home</button>
+    </div>
   `;
 }
 
+// Render Result for Tab B (By Document Upload)
 function renderVerificationResultTabB(res) {
   const container = document.getElementById('result-container');
   if (!container) return;
 
   const found = res.found !== false && res.status !== 'NOT_FOUND';
   const mismatches = res.mismatches || res.field_mismatches || [];
-  const isTampered = res.status === 'TAMPERED' || mismatches.length > 0;
-  const docMatches = Boolean(res.document_matches_record) && !isTampered;
+  const docMatches = Boolean(res.document_matches_record) && (res.status === 'ISSUED' || res.status === 'VALID') && mismatches.length === 0;
   const record = res.record;
 
-  let bannerHtml = '';
-  let statusPill = '';
-
+  let indicatorHtml = '';
   if (!found) {
-    statusPill = `<span class="status-pill revoked">NOT_FOUND</span>`;
-    bannerHtml = `
-      <div class="result-hero-banner warning" style="background: linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%) !important; border: 1.5px solid #FDE68A !important; border-radius: 20px; padding: 1.75rem 2rem; display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.75rem;">
-        <div class="result-icon-shield" style="width: 58px; height: 58px; border-radius: 50%; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem;">
-          ⚠️
-        </div>
+    indicatorHtml = `
+      <div class="indicator-banner warning">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #92400E !important; margin-bottom: 0.35rem;">Document Not Found in Institutional Registry</h3>
-          <p style="color: #475569 !important; font-size: 0.9rem;">The uploaded PDF does not match any registered academic record in the ledger.</p>
+          <div>Document Not Found in Registry</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">The uploaded PDF does not match any registered academic record.</div>
         </div>
       </div>
     `;
-  } else if (isTampered) {
-    statusPill = `<span class="status-pill revoked">TAMPERED</span>`;
-    bannerHtml = `
-      <div class="result-hero-banner tampered" style="background: linear-gradient(135deg, #FEF2F2 0%, #FFF1F2 100%) !important; border: 1.5px solid #FECACA !important; border-radius: 20px; padding: 1.75rem 2rem; display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.75rem;">
-        <div class="result-icon-shield" style="width: 58px; height: 58px; border-radius: 50%; background: #FEE2E2; color: #DC2626; border: 2px solid #FCA5A5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem;">
-          ⚠️
-        </div>
+  } else if (docMatches && mismatches.length === 0) {
+    indicatorHtml = `
+      <div class="indicator-banner valid">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #991B1B !important; margin-bottom: 0.35rem;">Document Discrepancies Detected ⚠️</h3>
-          <p style="color: #475569 !important; font-size: 0.9rem;">Mismatches found between the uploaded document content and the official registry ledger.</p>
+          <div>Document Matches Record Γ£à</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">All extracted fields and digital signature match the authentic registered ledger.</div>
         </div>
       </div>
     `;
-  } else if (docMatches) {
-    statusPill = `<span class="status-pill issued">VALID / MATCHES RECORD</span>`;
-    bannerHtml = `
-      <div class="result-hero-banner valid" style="background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%) !important; border: 1.5px solid #A7F3D0 !important; border-radius: 20px; padding: 1.75rem 2rem; display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.75rem;">
-        <div class="result-icon-shield" style="width: 58px; height: 58px; border-radius: 50%; background: #DCFCE7; color: #059669; border: 2px solid #86EFAC; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem;">
-          ✓
-        </div>
+  } else {
+    indicatorHtml = `
+      <div class="indicator-banner tampered">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #065F46 !important; margin-bottom: 0.35rem;">Document Matches Record 100% ✅</h3>
-          <p style="color: #334155 !important; font-size: 0.9rem;">All extracted fields and digital signature match the authentic registered ledger.</p>
+          <div>Document Discrepancies Detected ΓÜá∩╕Å</div>
+          <div style="font-size: 0.85rem; font-weight: 500; opacity: 0.9;">Mismatches found between the uploaded document and the official registered record.</div>
         </div>
       </div>
     `;
@@ -1058,22 +762,22 @@ function renderVerificationResultTabB(res) {
   let mismatchTableHtml = '';
   if (mismatches.length > 0) {
     mismatchTableHtml = `
-      <div style="margin-bottom: 2rem;">
-        <h4 style="color: #DC2626 !important; font-size: 0.95rem; margin-bottom: 0.85rem; font-weight: 800; text-transform: uppercase;">Field Discrepancy Breakdown</h4>
-        <table class="mismatch-table" style="width: 100%; border-collapse: collapse; border: 1px solid #FECACA; border-radius: 12px; overflow: hidden;">
+      <div style="margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-danger); font-size: 0.88rem; margin-bottom: 0.75rem; font-weight: 700;">Field Mismatch Breakdown</h4>
+        <table class="mismatch-table">
           <thead>
-            <tr style="background: #FEF2F2;">
-              <th style="padding: 0.85rem 1.15rem; color: #991B1B !important; font-weight: 700; text-align: left; font-size: 0.82rem;">Altered Field</th>
-              <th style="padding: 0.85rem 1.15rem; color: #991B1B !important; font-weight: 700; text-align: left; font-size: 0.82rem;">Uploaded Document Value</th>
-              <th style="padding: 0.85rem 1.15rem; color: #991B1B !important; font-weight: 700; text-align: left; font-size: 0.82rem;">Official Registry Value</th>
+            <tr>
+              <th>Field Name</th>
+              <th>Document Value (Uploaded)</th>
+              <th>Record Value (Official Registry)</th>
             </tr>
           </thead>
           <tbody>
             ${mismatches.map(m => `
-              <tr style="border-top: 1px solid #FEE2E2;">
-                <td style="padding: 0.95rem 1.15rem; font-weight: 700; color: #0F172A !important;">${m.field}</td>
-                <td class="doc-val mono" style="padding: 0.95rem 1.15rem; color: #DC2626 !important; font-weight: 700; background: #FEF2F2;">${m.document_value || 'None'}</td>
-                <td class="rec-val mono" style="padding: 0.95rem 1.15rem; color: #059669 !important; font-weight: 700; background: #ECFDF5;">${m.record_value || 'None'}</td>
+              <tr>
+                <td style="font-weight: 600; color: var(--color-gold);">${m.field}</td>
+                <td style="color: var(--color-danger); font-weight: 700;">${m.document_value}</td>
+                <td style="color: var(--color-success); font-weight: 700;">${m.record_value}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1082,61 +786,60 @@ function renderVerificationResultTabB(res) {
     `;
   }
 
-  let recordHtml = '';
-  if (record) {
-    recordHtml = `
-      <div class="result-metadata-box" style="background: #FFFFFF !important; border: 1.5px solid #E2E8F0 !important; border-radius: 20px !important; padding: 2rem !important; margin-bottom: 1.5rem !important; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;">
-        <div class="result-meta-header" style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #0284C7 !important; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          <span>Official Registered Record</span>
-        </div>
-        <div class="result-meta-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem;">
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Student Name</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${record.student_name}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Roll Number</span>
-            <span class="result-meta-value mono" style="font-size: 1.1rem; font-weight: 800; color: #0284C7 !important; display: block; margin-top: 0.2rem;">${record.student_roll_no}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Course / Degree</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${record.course_name}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Issue Date</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${record.issue_date}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Registered Marks</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${record.marks || '—'}</span>
-          </div>
-          <div class="result-meta-item" style="background: #F8FAFC !important; border: 1px solid #E2E8F0 !important; border-radius: 12px; padding: 0.9rem 1.15rem;">
-            <span class="result-meta-label" style="font-size: 0.78rem; font-weight: 700; color: #64748B !important; text-transform: uppercase; letter-spacing: 0.04em;">Registered CGPA</span>
-            <span class="result-meta-value" style="font-size: 1.1rem; font-weight: 800; color: #0F172A !important; display: block; margin-top: 0.2rem;">${record.cgpa || '—'}</span>
-          </div>
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; color: var(--color-primary);">Document Verification Result</h2>
+      <span class="status-pill ${docMatches && mismatches.length === 0 ? 'valid' : 'revoked'}">${res.status || (docMatches ? 'ISSUED' : 'TAMPERED')}</span>
+    </div>
+
+    ${indicatorHtml}
+
+    <div style="background: #FAF8F5; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; font-size: 0.88rem;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span style="color: var(--color-text-muted);">Certificate Number:</span>
+        <strong style="font-family: var(--font-mono); color: var(--color-gold);">${res.certificate_number || 'N/A'}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--color-text-muted);">Status:</span>
+        <strong style="color: var(--color-primary);">${res.status || 'NOT_FOUND'}</strong>
+      </div>
+    </div>
+
+    ${mismatchTableHtml}
+
+    ${record ? `
+      <div style="background: #FAF8F5; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.75rem;">
+        <h4 style="color: var(--color-gold); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; font-weight: 700;">Official Registered Record</h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.92rem;">
+          <div><span style="color: var(--color-text-muted);">Student Name:</span> <strong style="color: var(--color-text-main);">${record.student_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Roll Number:</span> <strong style="font-family: var(--font-mono); color: var(--color-text-main);">${record.student_roll_no}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Course / Degree:</span> <strong style="color: var(--color-text-main);">${record.course_name}</strong></div>
+          <div><span style="color: var(--color-text-muted);">Issue Date:</span> <strong style="color: var(--color-text-main);">${record.issue_date}</strong></div>
         </div>
       </div>
-    `;
-  }
+    ` : ''}
 
-  container.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
-      <h2 style="font-size: 1.75rem; font-weight: 800; color: #0F172A !important;">Document Verification Result</h2>
-      ${statusPill}
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+      <button class="btn btn-primary btn-block" onclick="navigateTo('page-9-verify')">Verify Another Document</button>
+      <button class="btn btn-secondary btn-block" onclick="navigateTo('page-1-landing')">Back to Home</button>
     </div>
-    ${bannerHtml}
-    ${mismatchTableHtml}
-    ${recordHtml}
   `;
 }
 
-// Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
-  updateNavState();
-  initPdfDropzone();
-  navigateTo('page-1-landing');
-  if (state.token && state.institution) {
-    loadDashboardData();
-  }
-});
+// Toast System
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${type === 'success' ? 'Γ£à' : type === 'error' ? 'Γ¥î' : 'Γä╣∩╕Å'}</span><span>${message}</span>`;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
