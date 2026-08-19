@@ -1,6 +1,6 @@
 /**
- * AVFA — Authenticity Validator for Academia (Next-Gen Redesign)
- * Complete Application Controller, Sardine.ai & Persona Theme, Multi-Modal Verification & Camera QR Scanner
+ * AVFA — Authenticity Validator for Academia (Final Workflow - Verity Edition)
+ * 10-Page Application Controller, Verity Navy & Burnt Orange Theme & Live Camera QR Scanner
  */
 
 // Application State
