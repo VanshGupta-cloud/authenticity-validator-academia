@@ -650,13 +650,15 @@
               <div style="background: var(--color-primary); color: var(--white); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--white); font-weight: 600; font-size: 0.9rem;">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--color-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <span>Official AVFA Certificate PDF (Embedded QR Included)</span>
+                  <span>Official AVFA Certificate PDF (Live Preview & Embedded QR)</span>
                 </div>
                 <a id="issued-pdf-download-btn" href="#" target="_blank" class="btn btn-gold btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                   Download Certificate
                 </a>
               </div>
+              <!-- Live Interactive PDF Viewer Frame -->
+              <iframe id="issued-pdf-frame" src="" style="width: 100%; height: 580px; border: none; background: #525659; display: block;" title="Official Certificate PDF Live Preview"></iframe>
             </div>
 
             <div class="issued-actions" style="margin-top: 1.75rem; display: flex; gap: 1rem;">
@@ -990,6 +992,6 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="/static/js/app.js?v=12.0"></script>
+  <script src="/static/js/app.js?v=13.0"></script>
 </body>
 </html>

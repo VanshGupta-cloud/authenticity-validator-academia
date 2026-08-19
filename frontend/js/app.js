@@ -568,19 +568,20 @@ async function handleIssueCertificate() {
     document.getElementById('issued-cert-sig').textContent = newCert.digital_signature;
     document.getElementById('issued-cert-status').innerHTML = `<span class="status-pill valid">${newCert.status}</span>`;
 
-    // Handle generated PDF and Download Certificate button
-    if (newCert.pdf_url) {
-      const pdfCleanUrl = '/' + newCert.pdf_url.replace(/^\/+/, '');
-      const pdfFrame = document.getElementById('issued-pdf-frame');
-      const downloadBtn = document.getElementById('issued-pdf-download-btn') || document.getElementById('download-cert-btn');
+    // Handle generated PDF live preview and Download Certificate button
+    const certNum = newCert.certificate_number;
+    const rawPdfUrl = newCert.pdf_url || `/generated_certificates/${certNum}.pdf`;
+    const pdfCleanUrl = '/' + rawPdfUrl.replace(/^\/+/, '');
+    
+    const pdfFrame = document.getElementById('issued-pdf-frame');
+    const downloadBtn = document.getElementById('issued-pdf-download-btn') || document.getElementById('download-cert-btn');
 
-      if (pdfFrame) {
-        pdfFrame.src = pdfCleanUrl;
-      }
-      if (downloadBtn) {
-        downloadBtn.href = pdfCleanUrl;
-        downloadBtn.download = `${newCert.certificate_number}.pdf`;
-      }
+    if (pdfFrame) {
+      pdfFrame.src = pdfCleanUrl;
+    }
+    if (downloadBtn) {
+      downloadBtn.href = pdfCleanUrl;
+      downloadBtn.download = `${certNum}.pdf`;
     }
 
     showToast('Certificate cryptographically signed and PDF generated!', 'success');
