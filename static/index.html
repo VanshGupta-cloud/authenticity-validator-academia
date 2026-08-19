@@ -14,7 +14,7 @@
     type="image/svg+xml">
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=15.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=16.0">
 
   <!-- Html5-QRCode Camera Scanner Engine -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -219,42 +219,42 @@
           </div>
 
           <!-- ====================================================================
-               SUBTLE ANIMATED FLOWING CIRCUIT BACKGROUND BRIDGE
+               SUBTLE ANIMATED FLOWING CIRCUIT BACKGROUND BRIDGE (VERITY THEME)
                ==================================================================== -->
           <div class="flowing-circuit-section">
             <svg class="flowing-circuit-svg" viewBox="0 0 1400 160" preserveAspectRatio="none" fill="none">
               <defs>
                 <linearGradient id="pillGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#4C1D95" />
-                  <stop offset="100%" stop-color="#EC4899" />
+                  <stop offset="0%" stop-color="#243B53" />
+                  <stop offset="100%" stop-color="#C65D3B" />
                 </linearGradient>
                 <linearGradient id="pillGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#0284C7" />
-                  <stop offset="100%" stop-color="#38BDF8" />
+                  <stop offset="0%" stop-color="#334E68" />
+                  <stop offset="100%" stop-color="#E07A5F" />
                 </linearGradient>
                 <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#8B5CF6" flood-opacity="0.35" />
+                  <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#C65D3B" flood-opacity="0.3" />
                 </filter>
               </defs>
 
               <!-- Line 1: Top flowing curve with leading dashed trail -->
-              <path id="circuitPath1" d="M 0,35 C 380,35 480,35 560,55 C 640,75 750,75 1400,75" stroke="#E2E8F0" stroke-width="1.5" />
-              <path d="M 0,35 L 200,35" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="4, 6" />
+              <path id="circuitPath1" d="M 0,35 C 380,35 480,35 560,55 C 640,75 750,75 1400,75" stroke="#DDD7CF" stroke-width="1.5" />
+              <path d="M 0,35 L 200,35" stroke="#C7BFB5" stroke-width="1.5" stroke-dasharray="4, 6" />
 
               <!-- Line 2: Middle descending wave -->
-              <path id="circuitPath2" d="M 0,85 C 420,85 540,85 620,110 C 700,135 840,135 1400,135" stroke="#E2E8F0" stroke-width="1.5" />
-              <path d="M 0,85 L 240,85" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="3, 5" />
+              <path id="circuitPath2" d="M 0,85 C 420,85 540,85 620,110 C 700,135 840,135 1400,135" stroke="#DDD7CF" stroke-width="1.5" />
+              <path d="M 0,85 L 240,85" stroke="#C7BFB5" stroke-width="1.5" stroke-dasharray="3, 5" />
 
               <!-- Line 3: Bottom rising wave -->
-              <path id="circuitPath3" d="M 0,135 C 320,135 460,135 530,95 C 600,55 720,35 1400,35" stroke="#E2E8F0" stroke-width="1.5" />
-              <path d="M 0,135 L 180,135" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="4, 6" />
+              <path id="circuitPath3" d="M 0,135 C 320,135 460,135 530,95 C 600,55 720,35 1400,35" stroke="#DDD7CF" stroke-width="1.5" />
+              <path d="M 0,135 L 180,135" stroke="#C7BFB5" stroke-width="1.5" stroke-dasharray="4, 6" />
 
               <!-- Line 4: Center bridging connector -->
-              <path id="circuitPath4" d="M 0,60 C 500,60 620,60 710,60 C 800,60 920,105 1400,105" stroke="#E2E8F0" stroke-width="1.5" />
+              <path id="circuitPath4" d="M 0,60 C 500,60 620,60 710,60 C 800,60 920,105 1400,105" stroke="#DDD7CF" stroke-width="1.5" />
 
-              <!-- Moving Marker 1: Purple Diamond (Rhombus rotated 45°) on Path 1 -->
+              <!-- Moving Marker 1: Burnt Orange Diamond (Rhombus rotated 45°) on Path 1 -->
               <g filter="url(#subtleGlow)">
-                <polygon points="0,-6 6,0 0,6 -6,0" fill="#8B5CF6">
+                <polygon points="0,-6 6,0 0,6 -6,0" fill="#C65D3B">
                   <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite" />
                 </polygon>
                 <animateMotion dur="10s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
@@ -262,24 +262,24 @@
                 </animateMotion>
               </g>
 
-              <!-- Moving Marker 2: Dark Purple to Pink Gradient Capsule/Pill on Path 2 -->
+              <!-- Moving Marker 2: Navy to Burnt Orange Gradient Capsule on Path 2 -->
               <g>
                 <rect x="-18" y="-6" width="36" height="12" rx="6" fill="url(#pillGrad1)" />
-                <polygon points="-16,-4 -11,0 -16,4" fill="#3B0764" />
+                <polygon points="-16,-4 -11,0 -16,4" fill="#102A43" />
                 <animateMotion dur="13s" begin="-4s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
                   <mpath href="#circuitPath2" />
                 </animateMotion>
               </g>
 
-              <!-- Moving Marker 3: Cyan Diamond on Path 3 -->
+              <!-- Moving Marker 3: Deep Oxford Navy Diamond on Path 3 -->
               <g>
-                <polygon points="0,-6 6,0 0,6 -6,0" fill="#0284C7" />
+                <polygon points="0,-6 6,0 0,6 -6,0" fill="#243B53" />
                 <animateMotion dur="8.5s" begin="-2s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
                   <mpath href="#circuitPath3" />
                 </animateMotion>
               </g>
 
-              <!-- Moving Marker 4: Sky-Blue Capsule on Path 4 -->
+              <!-- Moving Marker 4: Terracotta Capsule on Path 4 -->
               <g>
                 <rect x="-14" y="-5" width="28" height="10" rx="5" fill="url(#pillGrad2)" />
                 <animateMotion dur="16s" begin="-8s" repeatCount="indefinite" rotate="auto" keyPoints="0;0.5;1" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1">
@@ -1682,7 +1682,7 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="/static/js/app.js?v=15.0"></script>
+  <script src="/static/js/app.js?v=16.0"></script>
 </body>
 
 </html>
