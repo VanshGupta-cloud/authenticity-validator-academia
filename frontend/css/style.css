@@ -1440,7 +1440,7 @@ footer, .site-footer {
   box-shadow: 0 0 22px rgba(198, 93, 59, 0.6);
 }
 
-/* Front Page Collegiate Monument Ambient Hero Background */
+/* Front Page Collegiate Monument Ambient Hero Background — Enhanced Saturation & Warmth */
 #page-1-landing {
   position: relative;
   overflow: hidden;
@@ -1451,18 +1451,50 @@ footer, .site-footer {
   top: 0;
   left: 0;
   right: 0;
-  height: 520px;
+  height: 560px;
   background-image: url('/static/images/hero_monument_bg.jpg');
   background-size: cover;
-  background-position: center 35%;
+  background-position: center 30%;
   background-repeat: no-repeat;
-  opacity: 0.16;
-  filter: blur(6px) contrast(1.15);
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0) 100%);
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0) 100%);
+  opacity: 0.32;
+  filter: blur(3.5px) saturate(2.0) contrast(1.3) brightness(1.05);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 65%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 65%, rgba(0,0,0,0) 100%);
   pointer-events: none;
   z-index: 0;
-  transform: scale(1.03);
+  transform: scale(1.02);
+  transition: all 0.5s ease;
+}
+
+/* Team Astrix Shimmering Gold Brand Styling */
+.brand-astrix-text {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 1.08rem;
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFB74D 45%, #E67E22 85%, #D35400 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(255, 183, 77, 0.35);
+}
+
+.astrix-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 183, 77, 0.35), rgba(36, 59, 83, 0.95));
+  border: 1.5px solid rgba(255, 183, 77, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 18px rgba(255, 183, 77, 0.35);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-brand:hover .astrix-icon-box {
+  transform: rotate(45deg) scale(1.08);
+  box-shadow: 0 0 25px rgba(255, 183, 77, 0.7);
+  border-color: #FFA726;
 }
 
 #page-1-landing .hero-container {
