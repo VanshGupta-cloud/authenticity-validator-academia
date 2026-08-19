@@ -14,7 +14,7 @@
     type="image/svg+xml">
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=16.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=17.0">
 
   <!-- Html5-QRCode Camera Scanner Engine -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -46,8 +46,7 @@
           <a href="javascript:void(0)" onclick="navigateTo('page-features')" class="nav-link">Features</a>
           <a href="javascript:void(0)" onclick="navigateTo('page-advantages')" class="nav-link">Advantages</a>
           <a href="javascript:void(0)" onclick="navigateTo('page-faqs')" class="nav-link">FAQs</a>
-          <a href="javascript:void(0)" onclick="navigateTo('page-9-verify')" class="nav-link highlight-link">Verify
-            Credentials</a>
+          <a href="javascript:void(0)" onclick="navigateTo('page-9-verify')" class="nav-link highlight-link">Verify Credentials</a>
         </nav>
 
         <!-- Actions / Authentication Controls -->
@@ -57,14 +56,14 @@
             <span>Ledger Synchronized</span>
           </div>
 
-          <div id="nav-auth-logged-out" style="display: flex; gap: 0.65rem;">
-            <button onclick="navigateTo('page-2-login')" class="btn btn-secondary btn-sm">Institution Login</button>
-            <button onclick="navigateTo('page-3-register')" class="btn btn-primary btn-sm">Register</button>
+          <div id="nav-auth-logged-out" style="display: flex; align-items: center; gap: 0.65rem;">
+            <button onclick="navigateTo('page-2-login')" class="btn btn-sm" style="padding: 8px 14px; font-size: 0.82rem; background: rgba(255,255,255,0.12); color: #FFFFFF; border: 1px solid rgba(255,255,255,0.25);">Institution Login</button>
+            <button onclick="navigateTo('page-3-register')" class="btn btn-accent btn-sm" style="padding: 8px 16px; font-size: 0.82rem;">Register</button>
           </div>
 
           <div id="nav-auth-logged-in" style="display: none; align-items: center; gap: 0.75rem;">
-            <button onclick="navigateTo('page-6-dashboard')" class="btn btn-cyan btn-sm">Dashboard</button>
-            <button onclick="handleSignOut()" class="btn btn-outline btn-sm">Sign Out</button>
+            <button onclick="navigateTo('page-6-dashboard')" class="btn btn-accent btn-sm" style="padding: 8px 14px; font-size: 0.82rem;">Dashboard</button>
+            <button onclick="handleSignOut()" class="btn btn-sm" style="padding: 8px 14px; font-size: 0.82rem; background: transparent; color: #FFFFFF; border: 1px solid rgba(255,255,255,0.3);">Sign Out</button>
           </div>
         </div>
       </div>
@@ -1682,7 +1681,7 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="/static/js/app.js?v=16.0"></script>
+  <script src="/static/js/app.js?v=17.0"></script>
 </body>
 
 </html>
