@@ -185,8 +185,8 @@ def generate_certificate_pdf(
         pagesize=A4,
         rightMargin=25 * mm,
         leftMargin=25 * mm,
-        topMargin=20 * mm,
-        bottomMargin=20 * mm,
+        topMargin=12 * mm,
+        bottomMargin=12 * mm,
     )
 
     styles = getSampleStyleSheet()
@@ -201,7 +201,7 @@ def generate_certificate_pdf(
         alignment=TA_CENTER,
         fontSize=20,
         leading=24,
-        spaceAfter=15,
+        spaceAfter=4,
     )
 
     title_style = ParagraphStyle(
@@ -210,7 +210,7 @@ def generate_certificate_pdf(
         alignment=TA_CENTER,
         fontSize=24,
         leading=30,
-        spaceAfter=15,
+        spaceAfter=4,
     )
 
     subtitle_style = ParagraphStyle(
@@ -219,7 +219,7 @@ def generate_certificate_pdf(
         alignment=TA_CENTER,
         fontSize=13,
         leading=18,
-        spaceAfter=12,
+        spaceAfter=6,
     )
 
     student_style = ParagraphStyle(
@@ -228,8 +228,8 @@ def generate_certificate_pdf(
         alignment=TA_CENTER,
         fontSize=22,
         leading=28,
-        spaceBefore=8,
-        spaceAfter=8,
+        spaceBefore=4,
+        spaceAfter=4,
     )
 
     normal_center = ParagraphStyle(
@@ -245,8 +245,8 @@ def generate_certificate_pdf(
         parent=normal_center,
         fontSize=16,
         leading=20,
-        spaceBefore=8,
-        spaceAfter=15,
+        spaceBefore=4,
+        spaceAfter=4,
     )
 
     label_style = ParagraphStyle(
@@ -328,7 +328,7 @@ def generate_certificate_pdf(
         )
 
         story.append(
-            Spacer(1, 10 * mm)
+            Spacer(1, 4 * mm)
         )
 
         # Course description
@@ -619,7 +619,7 @@ def generate_certificate_pdf(
         story.append(signature_table)
 
         story.append(
-            Spacer(1, 10 * mm)
+            Spacer(1, 4 * mm)
         )
 
         # -----------------------------------------------------
