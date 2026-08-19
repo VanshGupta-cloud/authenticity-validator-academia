@@ -289,9 +289,19 @@
 
           <!-- Recent Certificates List Table -->
           <div class="table-card">
-            <div class="table-header">
-              <h3 style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: var(--color-secondary);">Recent Certificates</h3>
-              <input type="text" id="dash-search-input" class="form-control" placeholder="Search certificates..." style="max-width: 260px;" oninput="handleDashboardSearch(this.value)">
+            <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <h3 style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: var(--color-secondary);">Recent Certificates</h3>
+                <div style="font-size: 0.78rem; color: var(--color-text-muted);">Manage, verify, download, or revoke issued credentials.</div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <div class="btn-group" style="display: flex; gap: 4px; background: rgba(36,59,83,0.06); padding: 3px; border-radius: var(--radius-md);">
+                  <button type="button" class="btn btn-sm active" id="filter-all-btn" onclick="filterDashboardStatus('ALL')" style="padding: 4px 10px; font-size: 0.8rem; font-weight: 600;">All</button>
+                  <button type="button" class="btn btn-sm btn-ghost" id="filter-active-btn" onclick="filterDashboardStatus('ISSUED')" style="padding: 4px 10px; font-size: 0.8rem; font-weight: 600; color: #00875A;">Active</button>
+                  <button type="button" class="btn btn-sm btn-ghost" id="filter-revoked-btn" onclick="filterDashboardStatus('REVOKED')" style="padding: 4px 10px; font-size: 0.8rem; font-weight: 600; color: #DE350B;">Revoked</button>
+                </div>
+                <input type="text" id="dash-search-input" class="form-control" placeholder="Search by name, roll, cert #..." style="max-width: 240px; padding: 0.4rem 0.75rem; font-size: 0.85rem;" oninput="handleDashboardSearch(this.value)">
+              </div>
             </div>
 
             <div style="overflow-x: auto;">
@@ -304,12 +314,34 @@
                     <th>Course / Degree</th>
                     <th>Issue Date</th>
                     <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="dash-cert-table-body">
                   <!-- Populated by JS -->
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Revoke Confirmation Modal -->
+          <div id="revoke-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+            <div style="background: var(--white); border-radius: var(--radius-lg); padding: 1.75rem; max-width: 480px; width: 90%; box-shadow: var(--shadow-card); border: 1px solid var(--color-border);">
+              <h3 style="color: var(--color-danger); font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 22px; height: 22px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                Revoke Academic Credential
+              </h3>
+              <p style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+                Are you sure you want to revoke certificate <strong id="revoke-modal-cert-num" style="color: var(--color-secondary); font-family: var(--font-mono);"></strong> issued to <strong id="revoke-modal-student-name"></strong>? This will permanently invalidate the degree on the public ledger.
+              </p>
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Revocation Reason / Audit Note</label>
+                <input type="text" id="revoke-reason-input" class="form-control" placeholder="e.g. Administrative credential audit failed - incomplete prerequisite credits" value="Administrative credential audit failed - incomplete prerequisite credits">
+              </div>
+              <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeRevokeModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-revoke-btn" onclick="confirmRevocation()">Confirm & Revoke</button>
+              </div>
             </div>
           </div>
         </div>

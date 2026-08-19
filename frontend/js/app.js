@@ -331,6 +331,9 @@ async function handleSetPassword() {
 // ============================================================================
 // PAGE 6: DASHBOARD (POST-LOGIN)
 // ============================================================================
+let currentFilterStatus = 'ALL';
+let pendingRevokeCertId = null;
+
 async function loadDashboardData(search = '') {
   const nameEl = document.getElementById('dash-inst-name');
   if (nameEl && state.institution) {
@@ -347,8 +350,15 @@ async function loadDashboardData(search = '') {
     if (activeCerts) activeCerts.textContent = stats.active;
     if (revokedCerts) revokedCerts.textContent = stats.revoked;
 
-    const certs = await API.getCertificates(search);
+    let certs = await API.getCertificates(search);
     state.recentCertificates = certs;
+
+    if (currentFilterStatus === 'ISSUED') {
+      certs = certs.filter(c => c.status === 'ISSUED');
+    } else if (currentFilterStatus === 'REVOKED') {
+      certs = certs.filter(c => c.status === 'REVOKED');
+    }
+
     renderDashboardTable(certs);
   } catch (err) {
     console.error('Error loading dashboard data:', err);
@@ -360,28 +370,117 @@ function renderDashboardTable(certs) {
   if (!tbody) return;
 
   if (!certs || certs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No certificate records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--color-text-muted); padding: 2.5rem;">No certificate records matching criteria.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = certs.map(c => `
-    <tr>
-      <td style="font-family: var(--font-mono); font-weight: 700; color: var(--color-gold);">${c.certificate_number}</td>
-      <td style="font-weight: 600;">${c.student_name}</td>
-      <td style="font-family: var(--font-mono); font-size: 0.85rem;">${c.student_roll_no}</td>
-      <td>${c.course_name}</td>
-      <td style="color: var(--color-text-muted); font-size: 0.85rem;">${c.issue_date}</td>
-      <td>
-        <span class="status-pill ${c.status === 'ISSUED' ? 'valid' : 'revoked'}">
-          ${c.status === 'ISSUED' ? 'Active' : 'Revoked'}
-        </span>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = certs.map(c => {
+    let actionHtml = '';
+    if (c.status === 'ISSUED') {
+      actionHtml = `
+        <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center;">
+          <button class="btn btn-sm btn-danger" style="padding: 4px 10px; font-size: 0.78rem; font-weight: 700; background: #DE350B; color: #fff;" onclick="openRevokeModal('${c.id}', '${c.certificate_number}', '${c.student_name.replace(/'/g, "\\'")}')">
+            Revoke
+          </button>
+          <button class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 0.78rem;" onclick="verifyFromDashboard('${c.certificate_number}')">
+            Verify
+          </button>
+          <a href="/generated_certificates/${c.certificate_number}.pdf" target="_blank" class="btn btn-sm btn-ghost" style="padding: 4px 8px; font-size: 0.78rem; color: var(--color-gold);">
+            PDF
+          </a>
+        </div>
+      `;
+    } else {
+      actionHtml = `
+        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+          <span style="font-size: 0.76rem; color: var(--color-danger); font-weight: 700; background: rgba(222,53,11,0.1); padding: 2px 6px; border-radius: 4px;">Revoked</span>
+          <button class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 0.78rem;" onclick="verifyFromDashboard('${c.certificate_number}')">
+            Audit Check
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <tr>
+        <td style="font-family: var(--font-mono); font-weight: 700; color: var(--color-gold); cursor: pointer;" onclick="verifyFromDashboard('${c.certificate_number}')" title="Click to verify">${c.certificate_number}</td>
+        <td style="font-weight: 600;">${c.student_name}</td>
+        <td style="font-family: var(--font-mono); font-size: 0.85rem;">${c.student_roll_no}</td>
+        <td>${c.course_name}</td>
+        <td style="color: var(--color-text-muted); font-size: 0.85rem;">${c.issue_date}</td>
+        <td>
+          <span class="status-pill ${c.status === 'ISSUED' ? 'valid' : 'revoked'}" style="cursor: pointer;" onclick="filterDashboardStatus('${c.status}')" title="Click to filter by ${c.status}">
+            ${c.status === 'ISSUED' ? 'Active' : 'Revoked'}
+          </span>
+        </td>
+        <td style="text-align: right;">
+          ${actionHtml}
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function handleDashboardSearch(query) {
   loadDashboardData(query);
+}
+
+function filterDashboardStatus(status) {
+  currentFilterStatus = status;
+  
+  const allBtn = document.getElementById('filter-all-btn');
+  const actBtn = document.getElementById('filter-active-btn');
+  const revBtn = document.getElementById('filter-revoked-btn');
+  
+  if (allBtn && actBtn && revBtn) {
+    allBtn.className = status === 'ALL' ? 'btn btn-sm active' : 'btn btn-sm btn-ghost';
+    actBtn.className = status === 'ISSUED' ? 'btn btn-sm active' : 'btn btn-sm btn-ghost';
+    revBtn.className = status === 'REVOKED' ? 'btn btn-sm active' : 'btn btn-sm btn-ghost';
+  }
+  
+  const query = document.getElementById('dash-search-input')?.value || '';
+  loadDashboardData(query);
+}
+
+function openRevokeModal(certId, certNumber, studentName) {
+  pendingRevokeCertId = certId;
+  const modal = document.getElementById('revoke-modal');
+  const numEl = document.getElementById('revoke-modal-cert-num');
+  const nameEl = document.getElementById('revoke-modal-student-name');
+  if (numEl) numEl.textContent = certNumber;
+  if (nameEl) nameEl.textContent = studentName;
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeRevokeModal() {
+  pendingRevokeCertId = null;
+  const modal = document.getElementById('revoke-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function confirmRevocation() {
+  if (!pendingRevokeCertId) return;
+  const reason = document.getElementById('revoke-reason-input')?.value.trim() || 'Administrative credential audit failed - incomplete prerequisite credits';
+  const confirmBtn = document.getElementById('confirm-revoke-btn');
+  if (confirmBtn) confirmBtn.disabled = true;
+
+  try {
+    await API.revokeCertificate(pendingRevokeCertId, reason);
+    showToast('Certificate revoked successfully and permanently anchored on ledger', 'success');
+    closeRevokeModal();
+    await loadDashboardData();
+  } catch (err) {
+    showToast(`Revocation failed: ${err.message}`, 'error');
+  } finally {
+    if (confirmBtn) confirmBtn.disabled = false;
+  }
+}
+
+async function verifyFromDashboard(certNumber) {
+  navigateTo('page-9-verify');
+  const input = document.getElementById('verify-cert-num');
+  if (input) input.value = certNumber;
+  await handleVerifyByNumber();
 }
 
 // ============================================================================
