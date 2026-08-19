@@ -164,6 +164,11 @@ function navigateTo(pageId) {
   // Update navbar auth state
   updateNavState();
 
+  // If entering verification page, initialize dropzone
+  if (pageId === 'page-9-verify') {
+    setTimeout(initPdfDropzone, 50);
+  }
+
   // If entering dashboard, load real data
   if (pageId === 'page-6-dashboard') {
     loadDashboardData();
@@ -645,10 +650,10 @@ async function handleRevokePrompt(certId, certNum) {
 
 function switchVerifyTab(tab) {
   state.activeVerifyTab = tab;
-  const tabABtn = document.getElementById('tab-a-btn');
-  const tabBBtn = document.getElementById('tab-b-btn');
-  const tabAContent = document.getElementById('verify-tab-a-content');
-  const tabBContent = document.getElementById('verify-tab-b-content');
+  const tabABtn = document.getElementById('tab-btn-a') || document.getElementById('tab-a-btn');
+  const tabBBtn = document.getElementById('tab-btn-b') || document.getElementById('tab-b-btn');
+  const tabAContent = document.getElementById('verify-content-a') || document.getElementById('verify-tab-a-content');
+  const tabBContent = document.getElementById('verify-content-b') || document.getElementById('verify-tab-b-content');
 
   if (tab === 'A') {
     if (tabABtn) tabABtn.classList.add('active');
@@ -702,9 +707,9 @@ async function startCameraScanner() {
     return;
   }
 
-  const idlePlaceholder = document.getElementById('camera-idle-placeholder');
+  const idlePlaceholder = document.getElementById('scanner-idle-placeholder') || document.getElementById('camera-idle-placeholder');
   const reticle = document.getElementById('scanner-reticle');
-  const controls = document.getElementById('scanner-controls');
+  const controls = document.getElementById('camera-controls') || document.getElementById('scanner-controls');
 
   if (idlePlaceholder) idlePlaceholder.style.display = 'none';
   if (reticle) reticle.style.display = 'block';
@@ -737,9 +742,9 @@ async function stopCameraScanner() {
     state.isScanning = false;
   }
 
-  const idlePlaceholder = document.getElementById('camera-idle-placeholder');
+  const idlePlaceholder = document.getElementById('scanner-idle-placeholder') || document.getElementById('camera-idle-placeholder');
   const reticle = document.getElementById('scanner-reticle');
-  const controls = document.getElementById('scanner-controls');
+  const controls = document.getElementById('camera-controls') || document.getElementById('scanner-controls');
 
   if (idlePlaceholder) idlePlaceholder.style.display = 'flex';
   if (reticle) reticle.style.display = 'none';
@@ -813,16 +818,63 @@ async function executeVerificationByNumber(certNum) {
 
 function handlePdfFileSelected(input) {
   if (input.files && input.files[0]) {
-    state.selectedPdfFile = input.files[0];
-    document.getElementById('selected-file-name').textContent = `Selected: ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+    setPdfFile(input.files[0]);
   }
+}
+
+function setPdfFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    showToast('Only PDF files are supported for document verification.', 'error');
+    return;
+  }
+  state.selectedPdfFile = file;
+  const label = document.getElementById('selected-file-name');
+  if (label) {
+    label.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    label.style.color = 'var(--primary)';
+    label.style.fontWeight = '700';
+  }
+  showToast(`File selected: ${file.name}`, 'success');
+}
+
+function initPdfDropzone() {
+  const dropzone = document.getElementById('pdf-dropzone');
+  if (!dropzone) return;
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.style.borderColor = 'var(--accent)';
+      dropzone.style.backgroundColor = '#F2EFE8';
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.style.borderColor = 'var(--primary)';
+      dropzone.style.backgroundColor = 'var(--bg-panel)';
+    }, false);
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files.length > 0) {
+      setPdfFile(files[0]);
+    }
+  }, false);
 }
 
 async function handleVerifyByDocument() {
   if (!state.selectedPdfFile) {
-    showToast('Please select or drag a PDF certificate file', 'error');
+    showToast('Please select or drag a PDF certificate file first', 'error');
     return;
   }
+
+  showToast('Analyzing document with OCR & SHA-256 validation...', 'info');
 
   const formData = new FormData();
   formData.append('file', state.selectedPdfFile);
@@ -1082,6 +1134,7 @@ function renderVerificationResultTabB(res) {
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
   updateNavState();
+  initPdfDropzone();
   navigateTo('page-1-landing');
   if (state.token && state.institution) {
     loadDashboardData();
