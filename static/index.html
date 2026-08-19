@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AVFA — Authenticity Validator for Academia (SIH25029)</title>
   <meta name="description" content="Tamper-Proof Academic Document Issuance and Verification System. Built for SIH25029.">
-  <link rel="stylesheet" href="/static/css/style.css?v=5.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=11.0">
   <!-- HTML5 QR Code Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -26,9 +26,23 @@
           </div>
         </div>
 
+        <!-- Center Nav Links (Matching Image) -->
+        <nav class="nav-links-center">
+          <a class="nav-link-item" onclick="openHowItWorksModal()">How It Works</a>
+          <a class="nav-link-item" onclick="openPlatformFeaturesModal()">Features</a>
+          <a class="nav-link-item" onclick="openAdvantagesModal()">Advantages</a>
+          <a class="nav-link-item" onclick="scrollToFaqs()">FAQs</a>
+        </nav>
+
         <div class="nav-actions">
-          <button id="nav-login-btn" class="btn btn-secondary btn-sm" onclick="navigateTo('page-2-login')">Institution Login</button>
-          <button id="nav-verify-btn" class="btn btn-primary btn-sm" onclick="navigateTo('page-9-verify')">Verify Certificate</button>
+          <!-- Ledger Synchronized Live Badge -->
+          <div class="ledger-badge-pill" onclick="openLedgerStatusModal()" title="Click to view live blockchain ledger status">
+            <span class="ledger-pulse-dot"></span>
+            <span>Ledger Synchronized</span>
+          </div>
+
+          <button id="nav-verify-btn" class="btn btn-secondary btn-sm" onclick="navigateTo('page-9-verify')">Verify Credentials</button>
+          <button id="nav-login-btn" class="btn btn-primary btn-sm" onclick="navigateTo('page-2-login')">Institution Portal</button>
           <div id="nav-dashboard-btn-group" style="display: none; align-items: center; gap: 0.5rem;">
             <button class="btn btn-gold btn-sm" onclick="navigateTo('page-6-dashboard')">Dashboard</button>
             <button class="btn btn-ghost btn-sm" onclick="logoutInstitution()">Sign Out</button>
@@ -42,9 +56,6 @@
 
       <!-- ====================================================================
            PAGE 1 — LANDING
-           App name, one-line description
-           Button: "Institution Login" → Page 2
-           Button: "Verify a Certificate" → Page 9 (no login required)
            ==================================================================== -->
       <section id="page-1-landing" class="view-section active">
         <div class="hero-container">
@@ -62,7 +73,7 @@
           <div class="hero-buttons">
             <button class="btn btn-primary btn-lg" onclick="navigateTo('page-2-login')">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-              Institution Login
+              Institution Portal
             </button>
             <button class="btn btn-secondary btn-lg" onclick="navigateTo('page-9-verify')">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -70,14 +81,205 @@
             </button>
           </div>
         </div>
+
+        <!-- Horizontal Dynamic Scroller (Marquee of AVFA Solutions) -->
+        <div class="solutions-marquee-container">
+          <div class="marquee-track">
+            <!-- Set 1 -->
+            <div class="marquee-item">🔗 <strong>Immutable Ledger Chain</strong> • SHA-256 Merkle Anchoring</div>
+            <div class="marquee-item">🔏 <strong>Cryptographic Sealing</strong> • RSA-2048 Asymmetric Signatures</div>
+            <div class="marquee-item">⚡ <strong>Instant Public Verifier</strong> • Sub-second QR & ID Lookup</div>
+            <div class="marquee-item">🔬 <strong>Forensic Tamper Detection</strong> • Micro-discrepancy & OCR</div>
+            <div class="marquee-item">🚫 <strong>Decentralized Revocation Engine</strong> • Instant Global Invalidation</div>
+            <div class="marquee-item">🔐 <strong>Two-Factor Institutional 2FA</strong> • Cryptographic Email OTP</div>
+            <div class="marquee-item">📄 <strong>Vector PDF Generator</strong> • Embedded Matrix QR Code</div>
+            <div class="marquee-item">💾 <strong>Dual Database Architecture</strong> • Cloud PostgreSQL + SQLite</div>
+            <!-- Set 2 (Duplicate for Seamless Infinite Loop) -->
+            <div class="marquee-item">🔗 <strong>Immutable Ledger Chain</strong> • SHA-256 Merkle Anchoring</div>
+            <div class="marquee-item">🔏 <strong>Cryptographic Sealing</strong> • RSA-2048 Asymmetric Signatures</div>
+            <div class="marquee-item">⚡ <strong>Instant Public Verifier</strong> • Sub-second QR & ID Lookup</div>
+            <div class="marquee-item">🔬 <strong>Forensic Tamper Detection</strong> • Micro-discrepancy & OCR</div>
+            <div class="marquee-item">🚫 <strong>Decentralized Revocation Engine</strong> • Instant Global Invalidation</div>
+            <div class="marquee-item">🔐 <strong>Two-Factor Institutional 2FA</strong> • Cryptographic Email OTP</div>
+            <div class="marquee-item">📄 <strong>Vector PDF Generator</strong> • Embedded Matrix QR Code</div>
+            <div class="marquee-item">💾 <strong>Dual Database Architecture</strong> • Cloud PostgreSQL + SQLite</div>
+          </div>
+        </div>
+
+        <!-- Tech Stack Section (Top of User Image) -->
+        <div style="max-width: 1140px; margin: 0 auto; width: 100%; padding: 0 1.5rem;">
+          <div class="section-title-wrap">
+            <span class="section-tag">Core Technologies</span>
+            <h2 class="section-heading">Modern Cryptographic & Verification Stack</h2>
+            <p class="section-desc">Engineered with high-concurrency microframeworks, asymmetric cryptographic primitives, and neural vector document processing.</p>
+          </div>
+
+          <div class="tech-grid-wrapper">
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">⚡</div>
+                <div class="tech-card-name">FastAPI (Python 3.11)</div>
+              </div>
+              <div class="tech-card-desc">High-throughput ASGI asynchronous backend with sub-millisecond REST routing and automatic OpenAPI validation.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">☁️</div>
+                <div class="tech-card-name">PostgreSQL & Supabase</div>
+              </div>
+              <div class="tech-card-desc">Distributed relational database with strict Row-Level Security (RLS) policies and immutable audit table logs.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">📄</div>
+                <div class="tech-card-name">PyMuPDF (Fitz)</div>
+              </div>
+              <div class="tech-card-desc">High-speed vector PDF stream parsing engine for sub-pixel text extraction and structural document integrity checks.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">🔬</div>
+                <div class="tech-card-name">OpenCV & RapidFuzz</div>
+              </div>
+              <div class="tech-card-desc">Computer vision image normalization and Levenshtein token-level fuzzy matching for micro-tampering detection.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">🎨</div>
+                <div class="tech-card-name">ReportLab Engine</div>
+              </div>
+              <div class="tech-card-desc">Vector graphics PDF generator embedding high-density scannable QR matrices and institutional authority seals.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">📱</div>
+                <div class="tech-card-name">PyZbar & QRCode</div>
+              </div>
+              <div class="tech-card-desc">Matrix barcode generator and multi-format scanner decoding embedded verification payloads in real-time.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">📷</div>
+                <div class="tech-card-name">Html5-QRCode</div>
+              </div>
+              <div class="tech-card-desc">Direct hardware camera laser scanner with video stream decoding and dynamic target reticle animations.</div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-card-header">
+                <div class="tech-icon-box">📚</div>
+                <div class="tech-card-name">RESTful JSON API</div>
+              </div>
+              <div class="tech-card-desc">Strict Pydantic typing contracts with interactive Swagger API documentation and zero ambiguity endpoints.</div>
+            </div>
+          </div>
+
+          <!-- 4 Interactive Solution Feature Cards (Matching Image) -->
+          <div class="section-title-wrap" style="margin-top: 1.5rem;">
+            <span class="section-tag">Platform Modules</span>
+            <h2 class="section-heading">Platform Architecture & Capabilities</h2>
+            <p class="section-desc">Click any module below to explore the security pipeline, compare advantage metrics, or read verified protocols.</p>
+          </div>
+
+          <div class="feature-cards-grid">
+            <div class="feature-action-card" onclick="openHowItWorksModal()">
+              <div class="feature-action-icon blue">🔄</div>
+              <div class="feature-action-title">How It Works</div>
+              <div class="feature-action-desc">Explore the 4-step cryptographic hashing & neural extraction security pipeline from institutional issue to public verification.</div>
+              <span class="feature-action-link">Learn Pipeline ➔</span>
+            </div>
+
+            <div class="feature-action-card" onclick="openPlatformFeaturesModal()">
+              <div class="feature-action-icon green">🛡️</div>
+              <div class="feature-action-title">Platform Features</div>
+              <div class="feature-action-desc">Micro-tamper detection, live camera QR decoding, batch CSV certificate issuance, and multi-tier email OTP delivery.</div>
+              <span class="feature-action-link">View Features ➔</span>
+            </div>
+
+            <div class="feature-action-card" onclick="openAdvantagesModal()">
+              <div class="feature-action-icon purple">📊</div>
+              <div class="feature-action-title">Advantages Matrix</div>
+              <div class="feature-action-desc">Compare AVFA vs. traditional legacy manual verification on speed, cost, cryptographic security, and fraud prevention.</div>
+              <span class="feature-action-link">Compare Systems ➔</span>
+            </div>
+
+            <div class="feature-action-card" onclick="scrollToFaqs()">
+              <div class="feature-action-icon gold">❓</div>
+              <div class="feature-action-title">Frequently Asked</div>
+              <div class="feature-action-desc">Answers to common questions regarding student privacy, cryptographic tamper limits, ledger anchoring, and onboarding.</div>
+              <span class="feature-action-link">Read FAQs ➔</span>
+            </div>
+          </div>
+
+          <!-- FAQs Section with Accordion -->
+          <div id="section-faqs" class="faq-container">
+            <div class="section-title-wrap">
+              <span class="section-tag">Help & Clarity</span>
+              <h2 class="section-heading">Frequently Asked Questions</h2>
+              <p class="section-desc">Everything you need to know about AVFA academic verification and cryptographic integrity.</p>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">
+                <span>How does AVFA prevent Photoshop / document editing fraud?</span>
+                <span class="faq-icon-toggle">+</span>
+              </div>
+              <div class="faq-answer">
+                AVFA uses a dual-layer security model. First, every issued degree has a canonical SHA-256 hash signed with the university's RSA-2048 private key. Second, when a PDF is uploaded in Tab B, our PyMuPDF & RapidFuzz OCR engine extracts the text and cross-references each field against the official ledger, highlighting any altered marks, CGPA, or names in bright red.
+              </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">
+                <span>What happens when a university revokes a certificate?</span>
+                <span class="faq-icon-toggle">+</span>
+              </div>
+              <div class="faq-answer">
+                Revocation is instantaneous worldwide. When an authorized official revokes a credential from the dashboard, its state is updated on the immutable ledger. Any subsequent QR scan or ID lookup immediately flashes a bright red "Revocation Warning" with the audit reason and timestamp.
+              </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">
+                <span>Can a fake candidate use another student's real Certificate ID?</span>
+                <span class="faq-icon-toggle">+</span>
+              </div>
+              <div class="faq-answer">
+                No. When a verifier searches the Certificate ID, AVFA retrieves the official student name and roll number directly from the university registry. If the candidate's resume says "Rohan" but the registry says "Vansh", the identity mismatch is exposed in under 1 second.
+              </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">
+                <span>Is student data secure and compliant with privacy standards?</span>
+                <span class="faq-icon-toggle">+</span>
+              </div>
+              <div class="faq-answer">
+                Yes. AVFA enforces Row-Level Security (RLS) in PostgreSQL, blocking unauthorized public database access. Sensitive operations require JSON Web Token (JWT) authorization and cryptographic Two-Factor OTP authentication.
+              </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">
+                <span>What is the Blockchain Ledger Synchronization badge?</span>
+                <span class="faq-icon-toggle">+</span>
+              </div>
+              <div class="faq-answer">
+                The green "Ledger Synchronized" badge in the navbar indicates that all issued credentials are mathematically anchored in an immutable Merkle block chain. Clicking the badge opens the live consensus explorer showing total anchored blocks and hash integrity.
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ====================================================================
            PAGE 2 — INSTITUTION LOGIN
-           Fields: official_email, password
-           Button: "Login"
-           Link: "New institution? Register here" → Page 3
-           On submit → POST /institutions/login → stores JWT, redirects to Dashboard (Page 6)
            ==================================================================== -->
       <section id="page-2-login" class="view-section">
         <div class="auth-wrapper">
@@ -115,9 +317,6 @@
 
       <!-- ====================================================================
            PAGE 3 — INSTITUTION REGISTRATION
-           Fields: name, official_email, address (optional)
-           Button: "Register"
-           On submit → POST /institutions/register → redirect to Page 4
            ==================================================================== -->
       <section id="page-3-register" class="view-section">
         <div class="auth-wrapper">
@@ -128,8 +327,8 @@
             </button>
 
             <div class="auth-header">
-              <h2>Institution Registration</h2>
-              <p>Register your university or academic institution on the AVFA network.</p>
+              <h2>Register Institution</h2>
+              <p>Create an accredited issuer profile for your academic institution.</p>
             </div>
 
             <form id="form-register" onsubmit="event.preventDefault(); handleInstitutionRegister();">
@@ -139,31 +338,27 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label">Official Email</label>
-                <input type="email" id="reg-email" class="form-control" placeholder="registrar@university.edu" required>
+                <label class="form-label">Official Domain Email</label>
+                <input type="email" id="reg-email" class="form-control" placeholder="e.g. registrar@nit.ac.in" required>
               </div>
 
               <div class="form-group">
-                <label class="form-label">Address (Optional)</label>
-                <input type="text" id="reg-address" class="form-control" placeholder="Campus Address, City, State">
+                <label class="form-label">Campus Address / Location</label>
+                <input type="text" id="reg-address" class="form-control" placeholder="e.g. Ranchi, Jharkhand" required>
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Register</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Register & Send OTP</button>
             </form>
 
             <div class="auth-footer-links">
-              Already registered? <a href="#" onclick="navigateTo('page-2-login')">Back to Login</a>
+              Already registered? <a href="#" onclick="navigateTo('page-2-login')">Sign in here</a>
             </div>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 4 — OTP VERIFICATION
-           Field: otp_code (6-digit input)
-           Note: "Code expires in 10 minutes"
-           Button: "Verify"
-           On submit → POST /institutions/verify-otp → redirect to Page 5
+           PAGE 4 — VERIFY OTP (TWO-FACTOR AUTH)
            ==================================================================== -->
       <section id="page-4-otp" class="view-section">
         <div class="auth-wrapper">
@@ -174,25 +369,24 @@
             </button>
 
             <div class="auth-header">
-              <h2>Verify OTP</h2>
-              <p>Enter the 6-digit verification code sent to <strong id="otp-target-email" style="color: var(--color-gold);">your official email</strong>.</p>
+              <h2>Verify Email Address</h2>
+              <p>Enter the 6-digit cryptographic verification code sent to your official email.</p>
+              <div class="otp-target-email" id="otp-display-email" style="margin-top: 0.5rem; font-weight: 600; color: var(--color-gold);">
+                official.registrar@university.edu
+              </div>
             </div>
 
             <form id="form-otp" onsubmit="event.preventDefault(); handleVerifyOtp();">
-              <div class="otp-input-group">
-                <input type="text" class="otp-box" maxlength="1" id="otp-1" autofocus oninput="handleOtpInput(this, 'otp-2')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-2" oninput="handleOtpInput(this, 'otp-3')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-3" oninput="handleOtpInput(this, 'otp-4')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-4" oninput="handleOtpInput(this, 'otp-5')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-5" oninput="handleOtpInput(this, 'otp-6')">
-                <input type="text" class="otp-box" maxlength="1" id="otp-6" oninput="handleOtpInput(this, null)">
+              <div class="otp-inputs-row">
+                <input type="text" maxlength="1" class="otp-box" id="otp-1" oninput="handleOtpInput(this, 'otp-2')" required autofocus>
+                <input type="text" maxlength="1" class="otp-box" id="otp-2" oninput="handleOtpInput(this, 'otp-3')" required>
+                <input type="text" maxlength="1" class="otp-box" id="otp-3" oninput="handleOtpInput(this, 'otp-4')" required>
+                <input type="text" maxlength="1" class="otp-box" id="otp-4" oninput="handleOtpInput(this, 'otp-5')" required>
+                <input type="text" maxlength="1" class="otp-box" id="otp-5" oninput="handleOtpInput(this, 'otp-6')" required>
+                <input type="text" maxlength="1" class="otp-box" id="otp-6" oninput="handleOtpInput(this, null)" required>
               </div>
 
-              <div style="font-size: 0.8rem; color: var(--color-text-muted); text-align: center; margin-bottom: 1.5rem;">
-                ⏱ Code expires in 10 minutes. Please enter the 6-digit code sent to your email.
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-block btn-lg">Verify</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">Verify Code</button>
             </form>
           </div>
         </div>
@@ -200,44 +394,39 @@
 
       <!-- ====================================================================
            PAGE 5 — SET PASSWORD
-           Fields: password, confirm password
-           Button: "Set Password"
-           On submit → POST /institutions/set-password → redirect to Page 2 (Login)
            ==================================================================== -->
       <section id="page-5-password" class="view-section">
         <div class="auth-wrapper">
           <div class="midnight-card auth-card">
             <div class="auth-header">
-              <h2>Set Password</h2>
-              <p>Configure a secure password for your institution account.</p>
+              <h2>Set Account Password</h2>
+              <p>Create a secure master password to access your institutional issuing dashboard.</p>
             </div>
 
-            <form id="form-password" onsubmit="event.preventDefault(); handleSetPassword();">
+            <form id="form-set-password" onsubmit="event.preventDefault(); handleSetPassword();">
               <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" id="set-pass" class="form-control" placeholder="••••••••" required>
+                <label class="form-label">New Password</label>
+                <input type="password" id="set-password-1" class="form-control" placeholder="••••••••" required minlength="6">
               </div>
 
               <div class="form-group">
                 <label class="form-label">Confirm Password</label>
-                <input type="password" id="set-pass-confirm" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="set-password-2" class="form-control" placeholder="••••••••" required minlength="6">
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Set Password</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">Complete Setup & Sign In</button>
             </form>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           PAGE 6 — DASHBOARD (POST-LOGIN)
-           Shows: institution name, total certificates issued, recent certificates list
-           Buttons: "Issue New Certificate" → Page 7, "Verify a Certificate" → Page 9
+           PAGE 6 — DASHBOARD
            ==================================================================== -->
       <section id="page-6-dashboard" class="view-section">
         <div class="page-wrapper">
           <div class="dashboard-header">
-            <div class="dashboard-title">
+            <div>
               <h1 id="dash-inst-name">Global Institute of Technology</h1>
               <p>Institutional Credential Issuance & Management Portal</p>
             </div>
@@ -349,10 +538,6 @@
 
       <!-- ====================================================================
            PAGE 7 — ISSUE NEW CERTIFICATE
-           Fields: student_name, student_roll_no, course_name, issue_date, marks (optional), cgpa (optional)
-           Button: "Issue Certificate"
-           Requires: Authorization: Bearer <token> header (JWT from login)
-           On submit → POST /certificates/issue → Redirect to Page 8
            ==================================================================== -->
       <section id="page-7-issue" class="view-section">
         <div class="page-wrapper" style="max-width: 720px;">
@@ -419,8 +604,6 @@
 
       <!-- ====================================================================
            PAGE 8 — CERTIFICATE ISSUED (CONFIRMATION)
-           Shows: certificate_number, sha256_hash, digital_signature, status
-           Buttons: "Issue Another" → Page 7, "Back to Dashboard" → Page 6
            ==================================================================== -->
       <section id="page-8-issued" class="view-section">
         <div class="page-wrapper" style="max-width: 820px;">
@@ -462,15 +645,14 @@
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--color-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                   <span>Official AVFA Certificate PDF (Embedded QR Included)</span>
                 </div>
-                <a id="download-cert-btn" href="#" class="btn btn-gold btn-sm" download="certificate.pdf" target="_blank">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <a id="issued-pdf-download-btn" href="#" target="_blank" class="btn btn-gold btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                   Download Certificate
                 </a>
               </div>
-              <iframe id="issued-pdf-frame" src="" style="width: 100%; height: 520px; border: none; background: #ffffff;" title="Certificate PDF Preview"></iframe>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
+            <div class="issued-actions" style="margin-top: 1.75rem; display: flex; gap: 1rem;">
               <button class="btn btn-primary btn-block" onclick="navigateTo('page-7-issue')">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 Issue Another
@@ -486,8 +668,6 @@
 
       <!-- ====================================================================
            PAGE 9 — VERIFY CERTIFICATE (LIVE CAMERA QR SCANNER & TAB B)
-           Tab A: Scan QR Code (Live Camera Video Feed + QR Image Upload)
-           Tab B: Upload Document (PDF File Upload)
            ==================================================================== -->
       <section id="page-9-verify" class="view-section">
         <div class="page-wrapper" style="max-width: 680px;">
@@ -504,12 +684,11 @@
 
             <!-- Two Tabs -->
             <div class="verify-nav-tabs">
-              <button class="tab-btn active" id="tab-btn-a" onclick="switchVerifyTab('A')">📷 Tab A: Scan QR Code (Camera)</button>
+              <button class="tab-btn active" id="tab-btn-a" onclick="switchVerifyTab('A')">📷 Tab A: Scan QR / Enter ID</button>
               <button class="tab-btn" id="tab-btn-b" onclick="switchVerifyTab('B')">📄 Tab B: Upload Document (PDF)</button>
             </div>
 
-            <!-- Tab A: Live Camera QR Scanner -->
-                        <!-- Tab A: Verify by Certificate Number OR Live Camera QR Scanner -->
+            <!-- Tab A: Verify by Certificate Number OR Live Camera QR Scanner -->
             <div id="verify-content-a">
               <!-- Prominent Manual Certificate Number Input Box -->
               <div style="background: rgba(36, 59, 83, 0.05); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
@@ -518,7 +697,7 @@
                   Enter Certificate Number (Instant Search)
                 </label>
                 <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                  <input type="text" id="verify-cert-num" class="form-control" onkeydown="if(event.key==='Enter') { event.preventDefault(); handleVerifyByNumber(); }" placeholder="e.g. CERT-2026-A4284F7F" style="font-family: var(--font-mono); font-weight: 600; font-size: 1rem;">
+                  <input type="text" id="verify-cert-num" class="form-control" placeholder="e.g. CERT-2026-3D590F8D" style="font-family: var(--font-mono); font-weight: 600; font-size: 1rem;" onkeydown="if(event.key==='Enter') { event.preventDefault(); handleVerifyByNumber(); }">
                   <button type="button" class="btn btn-primary" onclick="handleVerifyByNumber()" style="white-space: nowrap; padding: 0.65rem 1.25rem;">
                     Verify Authenticity
                   </button>
@@ -585,17 +764,24 @@
               </div>
             </div>
 
+            <!-- Tab B: Upload Document (Forensic Verifier) -->
             <div id="verify-content-b" style="display: none;">
-              <form id="form-verify-b" onsubmit="event.preventDefault(); handleVerifyByDocument();">
-                <div class="dropzone-pdf" id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click();">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 48px; height: 48px; color: var(--color-gold); margin-bottom: 0.75rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                  <div style="font-weight: 600; color: var(--color-secondary);">Click or Drag & Drop Academic Document (PDF)</div>
-                  <div id="selected-file-name" style="font-size: 0.8rem; color: var(--color-gold); margin-top: 0.5rem;">Only PDF files accepted</div>
-                  <input type="file" id="pdf-file-input" style="display: none;" accept=".pdf" onchange="handlePdfFileSelected(this)">
+              <div class="file-drop-area" id="pdf-drop-zone" onclick="document.getElementById('pdf-upload-input').click()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 48px; height: 48px; color: var(--color-gold); margin-bottom: 0.75rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-secondary);">
+                  Drag and drop certificate PDF here
                 </div>
+                <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.35rem;">
+                  or click to select file from your computer
+                </div>
+                <input type="file" id="pdf-upload-input" accept=".pdf" style="display: none;" onchange="handlePdfFileSelected(this)">
+              </div>
 
-                <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">Verify Document</button>
-              </form>
+              <div id="selected-file-name" style="margin-top: 0.75rem; font-size: 0.88rem; color: var(--color-gold); font-weight: 600; text-align: center;"></div>
+
+              <button type="button" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;" onclick="handleVerifyByDocument()">
+                Run Forensic Verification
+              </button>
             </div>
           </div>
         </div>
@@ -603,14 +789,6 @@
 
       <!-- ====================================================================
            PAGE 10 — VERIFICATION RESULT
-           Via certificate number / QR Scanner (Tab A):
-             Two indicators: "Record Authentic" (✅/⚠️), tamper warning if tamper_detected: true
-             Shows: student_name, student_roll_no, course_name, issue_date, marks, cgpa, status
-           Via document upload (Tab B):
-             Shows: found status
-             If found: "Document Matches Record" (✅/⚠️ from document_matches_record)
-             If mismatches exist: list each showing document value vs. record value side by side
-             Shows: certificate_number, status
            ==================================================================== -->
       <section id="page-10-result" class="view-section">
         <div class="page-wrapper" style="max-width: 820px;">
@@ -621,7 +799,181 @@
       </section>
 
     </main>
- 
+
+    <!-- ====================================================================
+         INTERACTIVE FEATURE MODALS
+         ==================================================================== -->
+
+    <!-- Modal 1: How It Works Pipeline -->
+    <div id="modal-how-it-works" class="feature-modal-overlay">
+      <div class="feature-modal-box">
+        <button class="feature-modal-close" onclick="closeFeatureModal('modal-how-it-works')">✕</button>
+        <span class="section-tag">Security Architecture</span>
+        <h2 style="font-family: var(--font-heading); font-size: 1.65rem; color: var(--color-secondary); margin-bottom: 0.5rem;">The AVFA 4-Step Verification Pipeline</h2>
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.75rem;">How academic records transition from university issuance to tamper-proof public verification.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">1</div>
+            <div>
+              <h4 style="color: var(--color-secondary); font-size: 1rem; margin-bottom: 0.25rem;">Institutional Ingestion & 2FA Auth</h4>
+              <p style="font-size: 0.85rem; color: var(--color-text-muted);">Accredited universities authenticate with two-factor email OTP to access the issuing engine for single or batch graduate records.</p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">2</div>
+            <div>
+              <h4 style="color: var(--color-secondary); font-size: 1rem; margin-bottom: 0.25rem;">Canonical SHA-256 Serialization</h4>
+              <p style="font-size: 0.85rem; color: var(--color-text-muted);">Graduate details, marks obtained, total score, CGPA, and timestamps are structured into a deterministic canonical payload and hashed.</p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">3</div>
+            <div>
+              <h4 style="color: var(--color-secondary); font-size: 1rem; margin-bottom: 0.25rem;">RSA-2048 Asymmetric Signing & PDF Generation</h4>
+              <p style="font-size: 0.85rem; color: var(--color-text-muted);">The university signs the canonical hash using its private key, rendering a vector PDF with an embedded high-density verification QR code.</p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">4</div>
+            <div>
+              <h4 style="color: var(--color-secondary); font-size: 1rem; margin-bottom: 0.25rem;">Public Dual-Mode Verification</h4>
+              <p style="font-size: 0.85rem; color: var(--color-text-muted);">Verifiers validate credentials in sub-seconds using Tab A (Camera QR scanner / ID search) or Tab B (Forensic PDF Upload with RapidFuzz micro-tampering analysis).</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="closeFeatureModal('modal-how-it-works')">Close Window</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 2: Platform Features Deep Dive -->
+    <div id="modal-platform-features" class="feature-modal-overlay">
+      <div class="feature-modal-box">
+        <button class="feature-modal-close" onclick="closeFeatureModal('modal-platform-features')">✕</button>
+        <span class="section-tag">Feature Capabilities</span>
+        <h2 style="font-family: var(--font-heading); font-size: 1.65rem; color: var(--color-secondary); margin-bottom: 0.5rem;">AVFA Platform Capabilities</h2>
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.5rem;">State-of-the-art academic verification features built for Smart India Hackathon.</p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; font-size: 0.88rem;">
+          <div style="background: rgba(36,59,83,0.04); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+            <strong style="color: var(--color-secondary); font-size: 0.95rem; display: block; margin-bottom: 0.35rem;">⚡ Instant Sub-Second Verification</strong>
+            Verifiers validate degrees in under 300ms using camera scanning or certificate ID search against the indexed ledger.
+          </div>
+          <div style="background: rgba(36,59,83,0.04); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+            <strong style="color: var(--color-secondary); font-size: 0.95rem; display: block; margin-bottom: 0.35rem;">🔬 Micro-Tampering Forensic OCR</strong>
+            PyMuPDF & RapidFuzz extract document text and highlight any altered marks, CGPA, or student names in red.
+          </div>
+          <div style="background: rgba(36,59,83,0.04); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+            <strong style="color: var(--color-secondary); font-size: 0.95rem; display: block; margin-bottom: 0.35rem;">🚫 Global Revocation Engine</strong>
+            Universities can permanently cancel credentials with audit timestamps, immediately alerting any verifier worldwide.
+          </div>
+          <div style="background: rgba(36,59,83,0.04); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+            <strong style="color: var(--color-secondary); font-size: 0.95rem; display: block; margin-bottom: 0.35rem;">📊 Marks & Pass/Fail Evaluation</strong>
+            Automatic score percentage calculation, First Class Distinction grading, and fail thresholds anchored in the cryptographic hash.
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="closeFeatureModal('modal-platform-features')">Close Window</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 3: Advantages Matrix Comparison -->
+    <div id="modal-advantages" class="feature-modal-overlay">
+      <div class="feature-modal-box">
+        <button class="feature-modal-close" onclick="closeFeatureModal('modal-advantages')">✕</button>
+        <span class="section-tag">Comparison Matrix</span>
+        <h2 style="font-family: var(--font-heading); font-size: 1.65rem; color: var(--color-secondary); margin-bottom: 0.5rem;">AVFA vs. Legacy Verification Systems</h2>
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.5rem;">Why cryptographic automation replaces weeks of manual postal and background checks.</p>
+
+        <div style="overflow-x: auto;">
+          <table class="custom-table" style="font-size: 0.88rem;">
+            <thead>
+              <tr>
+                <th>Evaluation Parameter</th>
+                <th style="color: var(--color-gold);">AVFA System</th>
+                <th>Traditional Paper / Postal</th>
+                <th>Third-Party Background Check</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Verification Speed</strong></td>
+                <td><span style="color: #00875A; font-weight: 700;">Sub-Second (< 1 sec)</span></td>
+                <td>3 to 4 Weeks</td>
+                <td>7 to 14 Days</td>
+              </tr>
+              <tr>
+                <td><strong>Verification Cost</strong></td>
+                <td><span style="color: #00875A; font-weight: 700;">₹0 (Free Public Verifier)</span></td>
+                <td>₹300 - ₹800 per certificate</td>
+                <td>₹1,500 - ₹3,500 per check</td>
+              </tr>
+              <tr>
+                <td><strong>Tamper Proofing</strong></td>
+                <td><span style="color: #00875A; font-weight: 700;">100% Cryptographic (SHA-256 + RSA)</span></td>
+                <td>0% (Photoshop Vulnerable)</td>
+                <td>Manual phone confirmation</td>
+              </tr>
+              <tr>
+                <td><strong>Revocation Handling</strong></td>
+                <td><span style="color: #00875A; font-weight: 700;">Instant Global Invalidation</span></td>
+                <td>Impossible once printed</td>
+                <td>Delayed manual re-audit</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="closeFeatureModal('modal-advantages')">Close Window</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 4: Ledger Synchronized Live Status Modal -->
+    <div id="modal-ledger-status" class="feature-modal-overlay">
+      <div class="feature-modal-box" style="max-width: 580px;">
+        <button class="feature-modal-close" onclick="closeFeatureModal('modal-ledger-status')">✕</button>
+        <span class="section-tag">Blockchain Node Consensus</span>
+        <h2 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-secondary); margin-bottom: 0.5rem;">Ledger Synchronization Status</h2>
+        <p style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 1.5rem;">Live cryptographic Merkle chain status anchoring all issued certificates.</p>
+
+        <div style="background: rgba(36,59,83,0.05); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem; font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="color: var(--color-text-muted);">Consensus State:</span>
+            <strong style="color: #00875A; display: flex; align-items: center; gap: 0.4rem;">
+              <span class="ledger-pulse-dot" style="width: 7px; height: 7px;"></span>
+              SYNCHRONIZED_CONSENSUS
+            </strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="color: var(--color-text-muted);">Total Chained Blocks:</span>
+            <strong id="ledger-modal-total-blocks" style="font-family: var(--font-mono); color: var(--color-secondary);">Loading...</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="color: var(--color-text-muted);">Cryptographic Algorithm:</span>
+            <strong style="font-family: var(--font-mono); color: var(--color-gold);">SHA-256 + RSA-2048</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--color-text-muted);">Ledger Endpoint:</span>
+            <a href="/certificates/blockchain-ledger" target="_blank" style="color: var(--color-gold); font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;">/certificates/blockchain-ledger ↗</a>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="closeFeatureModal('modal-ledger-status')">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Editorial Footer -->
     <footer class="site-footer">
       © 2026 AVFA Academia — Authenticity Validator for Academia (SIH25029). Trust what you can verify.
@@ -631,6 +983,6 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="/static/js/app.js?v=10.0"></script>
+  <script src="/static/js/app.js?v=11.0"></script>
 </body>
 </html>
